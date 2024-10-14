@@ -1,2 +1,9 @@
-target create build/pluhOS
-gdb-remote localhost:1234
+settings set target.exec-search-paths ./build
+target create ./build/jerryOS
+target symbols add ./build/jerryOS
+
+breakpoint set --name main
+
+command script import ./scripts_lldb/dtb_to_dts.py
+
+gdb-remote localhost:4321

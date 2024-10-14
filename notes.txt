@@ -1,4 +1,9 @@
-otool -l build/pluhOS
-otool -h build/pluhOS
+Various useful commands:
 
-llvm-objdump -D build/pluhOS
+readelf -S build/jerryOS
+
+llvm-objdump -D build/jerryOS
+
+# I built ld.lld at /Users/chungmcl/Projects/llvm-project/build/bin/ and am using that,
+# but you could also just do `brew install lld` and symlink to that instead. 
+ln -s /Users/chungmcl/Projects/llvm-project/build/bin/ld.lld /usr/local/bin/ld
