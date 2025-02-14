@@ -3,6 +3,169 @@
 #include "libfdt.h"
 #include "libfdt_internal.h"
 
+int fdt_check_prop_offset_(const void *fdt, int offset)
+{
+	if (!can_assume(VALID_INPUT)
+	    && ((offset < 0) || (offset % FDT_TAGSIZE)))
+		return -FDT_ERR_BADOFFSET;
+
+	if (fdt_next_tag(fdt, offset, &offset) != FDT_PROP)
+		return -FDT_ERR_BADOFFSET;
+
+	return offset;
+}
+
+static const struct fdt_property *fdt_get_property_by_offset_(const void *fdt,
+  int offset,
+  int *lenp)
+{
+  int err;
+  const struct fdt_property *prop;
+
+  if (!can_assume(VALID_INPUT) &&
+      (err = fdt_check_prop_offset_(fdt, offset)) < 0) {
+    if (lenp)
+      *lenp = err;
+    return NULL;
+  }
+
+  prop = fdt_offset_ptr_(fdt, offset);
+
+  if (lenp)
+    *lenp = fdt32_ld_(&prop->len);
+
+  return prop;
+}
+
+const struct fdt_property *fdt_get_property_by_offset(const void *fdt,
+int offset,
+int *lenp)
+{
+  /* Prior to version 16, properties may need realignment
+  * and this API does not work. fdt_getprop_*() will, however. */
+
+  if (!can_assume(LATEST) && fdt_version(fdt) < 0x10) {
+    if (lenp)
+      *lenp = -FDT_ERR_BADVERSION;
+    return NULL;
+  }
+
+  return fdt_get_property_by_offset_(fdt, offset, lenp);
+}
+
+static int nextprop_(const void *fdt, int offset)
+{
+	u32 tag;
+	int nextoffset;
+
+	do {
+		tag = fdt_next_tag(fdt, offset, &nextoffset);
+
+		switch (tag) {
+		case FDT_END:
+			if (nextoffset >= 0)
+				return -FDT_ERR_BADSTRUCTURE;
+			else
+				return nextoffset;
+
+		case FDT_PROP:
+			return offset;
+		}
+		offset = nextoffset;
+	} while (tag == FDT_NOP);
+
+	return -FDT_ERR_NOTFOUND;
+}
+
+int fdt_next_property_offset(const void *fdt, int offset)
+{
+	if ((offset = fdt_check_prop_offset_(fdt, offset)) < 0)
+		return offset;
+
+	return nextprop_(fdt, offset);
+}
+
+const char *fdt_get_string(const void *fdt, int stroffset, int *lenp)
+{
+	s32 totalsize;
+	u32 absoffset;
+	size len;
+	int err;
+	const char *s, *n;
+
+	if (can_assume(VALID_INPUT)) {
+		s = (const char *)fdt + fdt_off_dt_strings(fdt) + stroffset;
+
+		if (lenp)
+			*lenp = strlen(s);
+		return s;
+	}
+	totalsize = fdt_ro_probe_(fdt);
+	err = totalsize;
+	if (totalsize < 0)
+		goto fail;
+
+	err = -FDT_ERR_BADOFFSET;
+	absoffset = stroffset + fdt_off_dt_strings(fdt);
+	if (absoffset >= (unsigned)totalsize)
+		goto fail;
+	len = totalsize - absoffset;
+
+	if (fdt_magic(fdt) == FDT_MAGIC) {
+		if (stroffset < 0)
+			goto fail;
+		if (can_assume(LATEST) || fdt_version(fdt) >= 17) {
+			if ((unsigned)stroffset >= fdt_size_dt_strings(fdt))
+				goto fail;
+			if ((fdt_size_dt_strings(fdt) - stroffset) < len)
+				len = fdt_size_dt_strings(fdt) - stroffset;
+		}
+	} else if (fdt_magic(fdt) == FDT_SW_MAGIC) {
+		unsigned int sw_stroffset = -stroffset;
+
+		if ((stroffset >= 0) ||
+		    (sw_stroffset > fdt_size_dt_strings(fdt)))
+			goto fail;
+		if (sw_stroffset < len)
+			len = sw_stroffset;
+	} else {
+		err = -FDT_ERR_INTERNAL;
+		goto fail;
+	}
+
+	s = (const char *)fdt + absoffset;
+	n = memchr(s, '\0', len);
+	if (!n) {
+		/* missing terminating NULL */
+		err = -FDT_ERR_TRUNCATED;
+		goto fail;
+	}
+
+	if (lenp)
+		*lenp = n - s;
+	return s;
+
+fail:
+	if (lenp)
+		*lenp = err;
+	return NULL;
+}
+
+const char *fdt_string(const void *fdt, int stroffset)
+{
+	return fdt_get_string(fdt, stroffset, NULL);
+}
+
+int fdt_first_property_offset(const void *fdt, int nodeoffset)
+{
+	int offset;
+
+	if ((offset = fdt_check_node_offset_(fdt, nodeoffset)) < 0)
+		return offset;
+
+	return nextprop_(fdt, offset);
+}
+
 /*
  * Minimal sanity check for a read-only tree. fdt_ro_probe_() checks
  * that the given buffer contains what appears to be a flattened
@@ -61,7 +224,7 @@ const char *fdt_get_name(const void *fdt, int nodeoffset, int *len)
 		 * contents are loosely checked.
 		 */
 		const char *leaf;
-		leaf = jerry_strrchr(nameptr, '/');
+		leaf = strchr(nameptr, '/');
 		if (leaf == NULL) {
 			err = -FDT_ERR_BADSTRUCTURE;
 			goto fail;
@@ -70,7 +233,7 @@ const char *fdt_get_name(const void *fdt, int nodeoffset, int *len)
 	}
 
 	if (len)
-		*len = jerry_strlen(nameptr);
+		*len = strlen(nameptr);
 
 	return nameptr;
 

@@ -26,7 +26,7 @@ const char *fdt_find_string_len_(const char *strtab, int tabsize, const char *s,
 static inline const char *fdt_find_string_(const char *strtab, int tabsize,
 					   const char *s)
 {
-	return fdt_find_string_len_(strtab, tabsize, s, jerry_strlen(s));
+	return fdt_find_string_len_(strtab, tabsize, s, strlen(s));
 }
 
 int fdt_node_end_offset_(void *fdt, int nodeoffset);

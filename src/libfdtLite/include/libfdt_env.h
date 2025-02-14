@@ -7,13 +7,8 @@
  * Copyright 2012 Kim Phillips, Freescale Semiconductor.
  */
 
-// #include <stdbool.h>
-// #include <stddef.h>
-// #include <stdint.h>
 #include "jerryTypes.h"
-// #include <stdlib.h>
-// #include <string.h>
-// #include <limits.h>
+#include "string.h"
 
 #ifdef __CHECKER__
 #define FDT_FORCE __attribute__((force))

@@ -17,15 +17,24 @@ int main() {
 
   int offset = 0;  // Root node
   int depth = 0;
-  const void* fdt = (const void*)deviceTreeAddress;
+  const void* currNode = (const void*)deviceTreeAddress;
 
   do {
-    offset = fdt_next_node(fdt, offset, &depth);  // Assign offset before the condition
+    offset = fdt_next_node(currNode, offset, &depth);
     if (offset < 0) {
-      break;  // Exit the loop if there are no more nodes
+      break; 
     }
-    const char* name = fdt_get_name(fdt, offset, NULL);
 
+    const char* currNodeName = fdt_get_name(currNode, offset, NULL);
+
+    int propertyOffset;
+    const struct fdt_property* property;
+    fdt_for_each_property_offset(propertyOffset, currNode, offset) {
+      property = fdt_get_property_by_offset(currNode, propertyOffset, NULL);
+      if (property) {
+        const char* prop_name = fdt_string(currNode, fdt32_to_cpu(property->nameoff));
+      }
+    }
   } while (offset >= 0);
 
   return 0;

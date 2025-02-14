@@ -16,13 +16,15 @@ all:
 # Note that -T only works with ELF, not with MachO -- hence the need for --target=aarch64-unknown-linux-gnu
 	clang -g -o $(BUILD_DIR)/$(NAME) \
 		-I$(SRC_DIR)/include \
+		-I$(SRC_DIR)/jerryLibc/include \
 		-I$(SRC_DIR)/libfdtLite/include \
 		$(SRC_DIR)/start.asm \
 		$(SRC_DIR)/main.c \
+		$(SRC_DIR)/jerryLibc/string.c \
 		$(SRC_DIR)/libfdtLite/fdt.c \
 		$(SRC_DIR)/libfdtLite/fdt_ro.c \
 		-T $(SRC_DIR)/link.lds \
-		--target=aarch64-unknown-linux-gnu -nostdlib -static -v
+		--target=aarch64-unknown-linux-gnu -nostdlib -nostdinc -fno-builtin -static -v
 	
 	@echo "--------------------------------------------------"
 # for some reason --only-section doesn't work but --dump-section does...? 

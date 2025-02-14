@@ -1579,7 +1579,7 @@ static inline int fdt_property_cell(void *fdt, const char *name, u32 val)
 int fdt_property_placeholder(void *fdt, const char *name, int len, void **valp);
 
 #define fdt_property_string(fdt, name, str) \
-	fdt_property(fdt, name, str, jerry_strlen(str)+1)
+	fdt_property(fdt, name, str, strlen(str)+1)
 int fdt_end_node(void *fdt);
 int fdt_finish(void *fdt);
 
@@ -1729,7 +1729,7 @@ int fdt_setprop_namelen(void *fdt, int nodeoffset, const char *name,
 static inline int fdt_setprop(void *fdt, int nodeoffset, const char *name,
 			      const void *val, int len)
 {
-	return fdt_setprop_namelen(fdt, nodeoffset, name, jerry_strlen(name), val,
+	return fdt_setprop_namelen(fdt, nodeoffset, name, strlen(name), val,
 				   len);
 }
 
@@ -1798,7 +1798,7 @@ static inline int fdt_setprop_placeholder(void *fdt, int nodeoffset,
 					  void **prop_data)
 {
 	return fdt_setprop_placeholder_namelen(fdt, nodeoffset, name,
-					       jerry_strlen(name), len, prop_data);
+					       strlen(name), len, prop_data);
 }
 
 /**
@@ -1917,7 +1917,7 @@ static inline int fdt_setprop_cell(void *fdt, int nodeoffset, const char *name,
  *	-FDT_ERR_TRUNCATED, standard meanings
  */
 #define fdt_setprop_string(fdt, nodeoffset, name, str) \
-	fdt_setprop((fdt), (nodeoffset), (name), (str), jerry_strlen(str)+1)
+	fdt_setprop((fdt), (nodeoffset), (name), (str), strlen(str)+1)
 
 /**
  * fdt_setprop_namelen_string - set a property to a string value
@@ -1950,7 +1950,7 @@ static inline int fdt_setprop_cell(void *fdt, int nodeoffset, const char *name,
  */
 #define fdt_setprop_namelen_string(fdt, nodeoffset, name, namelen, str)    \
 	fdt_setprop_namelen((fdt), (nodeoffset), (name), (namelen), (str), \
-			    jerry_strlen(str) + 1)
+			    strlen(str) + 1)
 
 /**
  * fdt_setprop_empty - set a property to an empty value
@@ -2126,7 +2126,7 @@ static inline int fdt_appendprop_cell(void *fdt, int nodeoffset,
  *	-FDT_ERR_TRUNCATED, standard meanings
  */
 #define fdt_appendprop_string(fdt, nodeoffset, name, str) \
-	fdt_appendprop((fdt), (nodeoffset), (name), (str), jerry_strlen(str)+1)
+	fdt_appendprop((fdt), (nodeoffset), (name), (str), strlen(str)+1)
 
 /**
  * fdt_appendprop_addrrange - append a address range property

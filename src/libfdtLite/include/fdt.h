@@ -7,9 +7,7 @@
  * Copyright 2012 Kim Phillips, Freescale Semiconductor.
  */
 
-// #include <string.h>
-size jerry_strlen(const char *s);
-char *jerry_strrchr(const char *s, int c);
+#include "string.h"
 
 #ifndef __ASSEMBLY__
 

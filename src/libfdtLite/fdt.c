@@ -10,27 +10,6 @@
 
 #include "libfdt_internal.h"
 
-size jerry_strlen(const char *s) {
-	const char *p = s;
-	while (*p) {
-		p++;
-	}
-	return p - s;
-}
-
-char *jerry_strrchr(const char *s, int c) {
-  const char *last = NULL;
-
-  while (*s) {
-    if (*s == (char)c) {
-      last = s;
-    }
-    s++;
-  }
-
-  return (char *)(c == '\0' ? s : last);
-}
-
 static int check_off_(u32 hdrsize, u32 totalsize, u32 off)
 {
 	return (off >= hdrsize) && (off <= totalsize);
