@@ -9,6 +9,7 @@
 
 // #include <string.h>
 size jerry_strlen(const char *s);
+char *jerry_strrchr(const char *s, int c);
 
 #ifndef __ASSEMBLY__
 

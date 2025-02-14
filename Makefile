@@ -20,6 +20,7 @@ all:
 		$(SRC_DIR)/start.asm \
 		$(SRC_DIR)/main.c \
 		$(SRC_DIR)/libfdtLite/fdt.c \
+		$(SRC_DIR)/libfdtLite/fdt_ro.c \
 		-T $(SRC_DIR)/link.lds \
 		--target=aarch64-unknown-linux-gnu -nostdlib -static -v
 	
