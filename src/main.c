@@ -25,8 +25,6 @@ int main() {
       break;  // Exit the loop if there are no more nodes
     }
     const char* name = fdt_get_name(fdt, offset, NULL);
-    // printf("Node: %s (depth: %d)\n", name, depth);
-    int a = 2 + 2;
 
   } while (offset >= 0);
 

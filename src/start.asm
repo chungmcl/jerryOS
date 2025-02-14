@@ -4,8 +4,8 @@
 _start:
   // Set the stack pointer to a specific memory address.
   // QEMU will have our kernel's .text start at 0x40080000, so
-  // placing the stack arbitrarily at 4096 bytes after the start of .text.
-  ldr x1, =0x40081000
+  // placing the stack arbitrarily at 0xF000 bytes after the start of .text.
+  ldr x1, =0x4008F000
   mov sp, x1
 
   // Device tree address is currently stored in x0. Move it to x1
