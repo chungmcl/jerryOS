@@ -3,6 +3,20 @@
 #include "libfdt.h"
 #include "libfdt_internal.h"
 
+static int fdt_string_eq_(const void *fdt, int stroffset,
+			  const char *s, int len)
+{
+	int slen;
+	const char *p = fdt_get_string(fdt, stroffset, &slen);
+
+	return p && (slen == len) && (memcmp(p, s, len) == 0);
+}
+
+const char *fdt_string(const void *fdt, int stroffset)
+{
+	return fdt_get_string(fdt, stroffset, NULL);
+}
+
 int fdt_check_prop_offset_(const void *fdt, int offset)
 {
 	if (!can_assume(VALID_INPUT)
@@ -51,6 +65,61 @@ int *lenp)
   }
 
   return fdt_get_property_by_offset_(fdt, offset, lenp);
+}
+
+static const struct fdt_property *fdt_get_property_namelen_(const void *fdt,
+						            int offset,
+						            const char *name,
+						            int namelen,
+							    int *lenp,
+							    int *poffset)
+{
+	for (offset = fdt_first_property_offset(fdt, offset);
+	     (offset >= 0);
+	     (offset = fdt_next_property_offset(fdt, offset))) {
+		const struct fdt_property *prop;
+
+		prop = fdt_get_property_by_offset_(fdt, offset, lenp);
+		if (!can_assume(LIBFDT_FLAWLESS) && !prop) {
+			offset = -FDT_ERR_INTERNAL;
+			break;
+		}
+		if (fdt_string_eq_(fdt, fdt32_ld_(&prop->nameoff),
+				   name, namelen)) {
+			if (poffset)
+				*poffset = offset;
+			return prop;
+		}
+	}
+
+	if (lenp)
+		*lenp = offset;
+	return NULL;
+}
+
+
+const void *fdt_getprop_namelen(const void *fdt, int nodeoffset,
+				const char *name, int namelen, int *lenp)
+{
+	int poffset;
+	const struct fdt_property *prop;
+
+	prop = fdt_get_property_namelen_(fdt, nodeoffset, name, namelen, lenp,
+					 &poffset);
+	if (!prop)
+		return NULL;
+
+	/* Handle realignment */
+	if (!can_assume(LATEST) && fdt_version(fdt) < 0x10 &&
+	    (poffset + sizeof(*prop)) % 8 && fdt32_ld_(&prop->len) >= 8)
+		return prop->data + 4;
+	return prop->data;
+}
+
+const void *fdt_getprop(const void *fdt, int nodeoffset,
+	const char *name, int *lenp)
+{
+	return fdt_getprop_namelen(fdt, nodeoffset, name, strlen(name), lenp);
 }
 
 static int nextprop_(const void *fdt, int offset)
@@ -149,11 +218,6 @@ fail:
 	if (lenp)
 		*lenp = err;
 	return NULL;
-}
-
-const char *fdt_string(const void *fdt, int stroffset)
-{
-	return fdt_get_string(fdt, stroffset, NULL);
 }
 
 int fdt_first_property_offset(const void *fdt, int nodeoffset)

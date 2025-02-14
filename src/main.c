@@ -15,27 +15,30 @@ int main() {
     // panic
   }
 
-  int offset = 0;  // Root node
+  int currNodeOffset = 0;
   int depth = 0;
   const void* currNode = (const void*)deviceTreeAddress;
 
   do {
-    offset = fdt_next_node(currNode, offset, &depth);
-    if (offset < 0) {
+    currNodeOffset = fdt_next_node(currNode, currNodeOffset, &depth);
+    if (currNodeOffset < 0) {
       break; 
     }
 
-    const char* currNodeName = fdt_get_name(currNode, offset, NULL);
+    const char* currNodeName = fdt_get_name(currNode, currNodeOffset, NULL);
+
+    int regLen;
+    const u64* reg = fdt_getprop(deviceTreeAddress, currNodeOffset, "reg", &regLen);
 
     int propertyOffset;
     const struct fdt_property* property;
-    fdt_for_each_property_offset(propertyOffset, currNode, offset) {
+    fdt_for_each_property_offset(propertyOffset, currNode, currNodeOffset) {
       property = fdt_get_property_by_offset(currNode, propertyOffset, NULL);
       if (property) {
         const char* prop_name = fdt_string(currNode, fdt32_to_cpu(property->nameoff));
       }
     }
-  } while (offset >= 0);
+  } while (currNodeOffset >= 0);
 
   return 0;
 }
