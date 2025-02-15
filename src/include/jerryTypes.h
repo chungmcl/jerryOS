@@ -35,5 +35,13 @@ do {                                         \
 	*(volatile u32*)&(_reg) = __myval__; \
 } while (0)
 
-#define dsb() asm volatile("dsb sy" ::: "memory")
-#define isb() asm volatile("isb" ::: "memory")
+/**
+ * Memory Barriers
+ * https://developer.arm.com/documentation/100941/0101/Barriers
+ */
+#define SY "sy" // Full system barrier
+#define ST "st" // Store barrier
+#define LD "ld" // Load barrier
+
+#define dsb(type) asm volatile("dsb " type ::: "memory")
+#define isb(type) asm volatile("isb " type ::: "memory")

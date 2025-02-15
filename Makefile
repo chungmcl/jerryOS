@@ -17,11 +17,13 @@ all:
 	clang -g -o $(BUILD_DIR)/$(NAME) \
 		-I$(SRC_DIR)/include \
 		-I$(SRC_DIR)/jerryLibc/include \
-		-I$(SRC_DIR)/libfdtLite/include \
+		-I$(SRC_DIR)/devices/libfdtLite/include \
+		-I$(SRC_DIR)/devices/include \
 		$(SRC_DIR)/start.asm \
 		$(SRC_DIR)/main.c \
 		$(SRC_DIR)/jerryLibc/string.c \
-		$(SRC_DIR)/libfdtLite/fdt.c $(SRC_DIR)/libfdtLite/fdt_ro.c \
+		$(SRC_DIR)/devices/libfdtLite/fdt.c $(SRC_DIR)/devices/libfdtLite/fdt_ro.c \
+		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
 		-T $(SRC_DIR)/link.lds \
 		--target=aarch64-unknown-linux-gnu \
 		-nostdlib -nostdinc -fno-builtin -static -v
