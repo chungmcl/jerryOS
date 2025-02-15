@@ -24,6 +24,17 @@ bool setupDevices(const void* deviceTreeAddress) {
       const fdt32_t* interruptsPtr = fdt_getprop(deviceTreeAddress, currNodeOffset, "interrupts", &interruptsLen);
       u32 interruptID = (u32)fdt32_to_cpu(interruptsPtr[1]) + 32; // Idk why we have to add a constant 32...?
 
+      u32 magicValue = READ32(regs->MagicValue);
+      if (READ32(regs->MagicValue) != VIRTIO_MAGIC) {
+        const char* msg = "wrong magic value";
+        return false;
+      }
+      u32 version = READ32(regs->Version);
+      if (READ32(regs->Version) != VIRTIO_VERSION) {
+        const char* msg = "wrong virtio version";
+        return false;
+      }
+
       WRITE32(regs->Status, 0);
       dsb();
 
