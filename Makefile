@@ -29,7 +29,8 @@ all:
 	@echo "--------------------------------------------------"
 # for some reason --only-section doesn't work but --dump-section does...? 
 # but I still have to specify an output file even with --dump-section, so using a throwaway file named "sections.tmp"
-	llvm-objcopy --dump-section ".text=$(BUILD_DIR)/$(NAME).bin" $(BUILD_DIR)/$(NAME) $(BUILD_DIR)/sections.tmp
+	llvm-objcopy --dump-section ".text=$(BUILD_DIR)/text.bin" --dump-section ".rodata.str1.1=$(BUILD_DIR)/rodata.bin" $(BUILD_DIR)/$(NAME) $(BUILD_DIR)/sections.tmp
+	cat $(BUILD_DIR)/text.bin $(BUILD_DIR)/rodata.bin > $(BUILD_DIR)/$(NAME).bin 
 
 	rm $(BUILD_DIR)/sections.tmp
 

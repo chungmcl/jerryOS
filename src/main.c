@@ -27,8 +27,13 @@ int main() {
 
     const char* currNodeName = fdt_get_name(currNode, currNodeOffset, NULL);
 
-    int regLen;
-    const u64* reg = fdt_getprop(deviceTreeAddress, currNodeOffset, "reg", &regLen);
+    s32 regLen;
+    const fdt32_t* reg = fdt_getprop(deviceTreeAddress, currNodeOffset, "reg", &regLen);
+    if (regLen > 0) {
+      for (s32 i = 0; i < regLen / sizeof(fdt32_t); i += 1) {
+        u32 regVal = fdt32_to_cpu(reg[i]);
+      }
+    }
 
     int propertyOffset;
     const struct fdt_property* property;
