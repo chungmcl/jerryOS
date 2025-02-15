@@ -8,7 +8,7 @@ size strlen(const char* s) {
 	return p - s;
 }
 
-char* strchr(const char *s, int c) {
+char* strchr(const char *s, s32 c) {
   const char* last = NULL;
 
   while (*s) {
@@ -21,8 +21,23 @@ char* strchr(const char *s, int c) {
   return (char *)(c == '\0' ? s : last);
 }
 
-void* memchr(const void* s, int c, size n) {
-  const unsigned char* p = s;
+s32 strncmp(const char* s1, const char* s2, size n) {
+  while (n--) {
+    if (*s1 != *s2 || *s1 == '\0') {
+      return (unsigned char)*s1 - (unsigned char)*s2;
+    }
+    s1 += 1;
+    s2 += 1;
+  }
+  return 0;
+}
+
+bool strStartsWith(const char* input, const char* prefix) {
+  return strncmp(prefix, input, strlen(prefix)) == 0;
+}
+
+void* memchr(const void* s, s32 c, size n) {
+  const u8* p = s;
   unsigned char uc = (unsigned char)c;
 
   while (n--) {
@@ -34,9 +49,9 @@ void* memchr(const void* s, int c, size n) {
   return NULL;
 }
 
-int memcmp(const void* s1, const void* s2, size n) {
-  const unsigned char* p1 = (const unsigned char*)s1;
-  const unsigned char* p2 = (const unsigned char*)s2;
+s32 memcmp(const void* s1, const void* s2, size n) {
+  const u8* p1 = (const u8*)s1;
+  const u8* p2 = (const u8*)s2;
 
   while (n--) {
     if (*p1 != *p2) {

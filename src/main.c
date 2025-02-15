@@ -1,9 +1,57 @@
-#include "jerryTypes.h"
+#include "main.h"
 #include "libfdt.h"
 
-int main() {
+bool setupDevices(const void* deviceTreeAddress) {
+  if (fdt_check_header(deviceTreeAddress) != 0) return false;
+
+  s32 currNodeOffset = 0;
+  s32 depth = 0;
+  const void* currNode = (const void*)deviceTreeAddress;
+
+  do {
+    currNodeOffset = fdt_next_node(currNode, currNodeOffset, &depth);
+    if (currNodeOffset < 0) {
+      break;
+    }
+
+    const char* currNodeName = fdt_get_name(currNode, currNodeOffset, NULL);
+    if (strStartsWith(currNodeName, "virtio_mmio")) {
+      s32 regLen;
+      const fdt32_t* regPtr = fdt_getprop(deviceTreeAddress, currNodeOffset, "reg", &regLen);
+      virtioRegs* regs = (virtioRegs*)((u64)fdt32_to_cpu(regPtr[1]));
+
+      s32 interruptsLen;
+      const fdt32_t* interruptsPtr = fdt_getprop(deviceTreeAddress, currNodeOffset, "interrupts", &interruptsLen);
+      u32 interruptID = (u32)fdt32_to_cpu(interruptsPtr[1]) + 32; // Idk why we have to add a constant 32...?
+
+      WRITE32(regs->Status, 0);
+      dsb();
+
+      WRITE32(regs->Status, READ32(regs->Status) | VIRTIO_STATUS_ACKNOWLEDGE);
+      dsb();
+
+      WRITE32(regs->Status, READ32(regs->Status) | VIRTIO_STATUS_DRIVER);
+      dsb();
+      
+      u32 deviceID = READ32(regs->DeviceID);
+      switch (deviceID) {
+        case VIRTIO_DEV_BLK: {
+          const char* msg = "supported virtio device";
+        }
+        default: {
+          const char* msg = "unsupported virtio device";
+        }
+      }
+
+    }
+  } while (currNodeOffset >= 0);
+
+  return true;
+}
+
+s32 main() {
   // note that the device tree is in big endian while this CPU is lil endian
-  u8* deviceTreeAddress;
+  const void* deviceTreeAddress;
   asm volatile (
     "mov %0, x1" // Get the device tree's address out of x1
     : "=r"(deviceTreeAddress) // Output operand
@@ -11,39 +59,9 @@ int main() {
     : // No clobbered registers
   );
 
-  if (fdt_check_header(deviceTreeAddress) != 0) {
+  if (!setupDevices(deviceTreeAddress)) {
     // panic
   }
-
-  int currNodeOffset = 0;
-  int depth = 0;
-  const void* currNode = (const void*)deviceTreeAddress;
-
-  do {
-    currNodeOffset = fdt_next_node(currNode, currNodeOffset, &depth);
-    if (currNodeOffset < 0) {
-      break; 
-    }
-
-    const char* currNodeName = fdt_get_name(currNode, currNodeOffset, NULL);
-
-    s32 regLen;
-    const fdt32_t* reg = fdt_getprop(deviceTreeAddress, currNodeOffset, "reg", &regLen);
-    if (regLen > 0) {
-      for (s32 i = 0; i < regLen / sizeof(fdt32_t); i += 1) {
-        u32 regVal = fdt32_to_cpu(reg[i]);
-      }
-    }
-
-    int propertyOffset;
-    const struct fdt_property* property;
-    fdt_for_each_property_offset(propertyOffset, currNode, currNodeOffset) {
-      property = fdt_get_property_by_offset(currNode, propertyOffset, NULL);
-      if (property) {
-        const char* prop_name = fdt_string(currNode, fdt32_to_cpu(property->nameoff));
-      }
-    }
-  } while (currNodeOffset >= 0);
 
   return 0;
 }
