@@ -1,5 +1,9 @@
 #include "virtio.h"
 
+bool setupBlockDevice(virtioRegs* regs, u32 interruptID) {
+
+}
+
 bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset) {
   s32 regLen;
   const fdt32_t* regPtr = fdt_getprop(deviceTreeAddress, virtIODevNodeOffset, "reg", &regLen);
@@ -11,12 +15,12 @@ bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset) {
 
   u32 magicValue = READ32(regs->MagicValue);
   if (READ32(regs->MagicValue) != VIRTIO_MAGIC) {
-    const char* msg = "wrong magic value";
+    // Wrong magic value
     return false;
   }
   u32 version = READ32(regs->Version);
   if (READ32(regs->Version) != VIRTIO_VERSION) {
-    const char* msg = "wrong virtio version";
+    // Wrong VirtIO version
     return false;
   }
 
@@ -32,10 +36,10 @@ bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset) {
   u32 deviceID = READ32(regs->DeviceID);
   switch (deviceID) {
     case VIRTIO_DEV_BLK: {
-      const char* msg = "supported virtio device";
+      setupBlockDevice(regs, interruptID);
     }
     default: {
-      const char* msg = "unsupported virtio device";
+      // Unsupported VirtIO device
     }
   }
 
