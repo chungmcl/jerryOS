@@ -2,12 +2,14 @@ NAME=jerryOS
 SRC_DIR=src
 BUILD_DIR=build
 DISK_PATH=$(BUILD_DIR)/disk.img
+CFLAGS="-fno-stack-protector"
+LDFLAGS=
 
 all:
 	export ARCHFLAGS="-arch arm64"
 	mkdir -p $(BUILD_DIR)
 
-	@if [ ! -f "$(DISK_PATH)" ]; then echo "\ndisk.img not already present. Creating with qemu-img create:"; qemu-img create -f raw "$(DISK_PATH)" 1G; echo "\n"; fi
+	@if [ ! -f "$(DISK_PATH)" ]; then echo "\n disk.img not already present. Creating with qemu-img create:"; qemu-img create -f raw "$(DISK_PATH)" 1G; echo "\n"; fi
 
 	@echo "--------------------------------------------------"
 # https://lld.llvm.org
@@ -26,7 +28,8 @@ all:
 		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
 		-T $(SRC_DIR)/link.lds \
 		--target=aarch64-unknown-linux-gnu \
-		-nostdlib -nostdinc -fno-builtin -static -v
+		-nostdlib -nostdinc -fno-builtin -static -v \
+		$(CFLAGS)
 	
 	@echo "--------------------------------------------------"
 # for some reason --only-section doesn't work but --dump-section does...? 
