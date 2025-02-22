@@ -5,5 +5,7 @@ readelf -S build/jerryOS
 llvm-objdump -D build/jerryOS
 
 # I built ld.lld at /Users/chungmcl/Projects/llvm-project/build/bin/ and am using that,
-# but you could also just do `brew install lld` and symlink to that instead. 
+# but you could also just do `brew install lld` and symlink to that instead.
+# Using /usr/local/bin/ as it's the first directory in `PATH` by default on macOS.
+mkdir -p /usr/local/bin/
 ln -s /Users/chungmcl/Projects/llvm-project/build/bin/ld.lld /usr/local/bin/ld
