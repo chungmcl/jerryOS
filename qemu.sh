@@ -5,7 +5,7 @@ make \
 && \
 qemu-system-aarch64 \
   -machine virt \
-  -cpu max \
+  -cpu cortex-a710 \
   -m 1G \
   -drive file="${DISK_PATH}",if=none,format=raw,id=vd -device virtio-blk-device,drive=vd -global virtio-mmio.force-legacy=false \
   -kernel build/jerryOS.bin -S \

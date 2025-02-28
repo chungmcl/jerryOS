@@ -1,7 +1,9 @@
 #include "virtio.h"
+#include "virtioBlk.h"
 
 bool setupBlockDevice(virtioRegs* regs, u32 interruptID) {
-
+  volatile virtio_blk_config *config = (virtio_blk_config*)regs->Config;
+  
 }
 
 bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset) {

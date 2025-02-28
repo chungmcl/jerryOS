@@ -53,7 +53,11 @@ class DTBlobToSource(ParsedCommand):
     parser.add_option(
       'o',
       'output-file',
-      help='Path to file where parsed device tree blob should be written to. Defaults to "./parsedDeviceTree.dts". Pass \'_\' if you do not wish to output to a file.',
+      help=(
+        'Path to file where parsed device tree blob should be written to. '
+        'Defaults to "./parsedDeviceTree.dts".' 
+        'Pass \'_\' if you do not wish to output to a file.'
+      ),
       value_type=eArgTypeFilename,
       dest='output_file',
       default='./parsedDeviceTree.dts'

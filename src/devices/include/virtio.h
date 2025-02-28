@@ -1,6 +1,8 @@
 #include "jerryTypes.h"
 #include "libfdt.h"
 
+/* Defined from virtio-v1.0-cs04 spec */
+
 typedef volatile struct __attribute__((packed)) {
 	u32 MagicValue;
 	u32 Version;
@@ -50,4 +52,13 @@ typedef volatile struct __attribute__((packed)) {
 #define VIRTIO_STATUS_DRIVER_OK          (4)
 #define VIRTIO_STATUS_DEVICE_NEEDS_RESET (64)
 
+struct virtio_cap {
+	char *name;
+	u32 bit;
+	bool support;
+	char *help;
+};
+
 bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset);
+
+
