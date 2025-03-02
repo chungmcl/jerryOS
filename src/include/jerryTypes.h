@@ -29,10 +29,10 @@ typedef unsigned long long size;
 
 #define READ32(_reg) (*(volatile u32 *)&(_reg))
 #define READ64(_reg) (*(volatile u64 *)&(_reg))
-#define WRITE32(_reg, _val)                  \
-do {                                         \
+#define WRITE32(_reg, _val)             \
+do {                                    \
 	register u32 __myval__ = (_val);      \
-	*(volatile u32*)&(_reg) = __myval__; \
+	*(volatile u32*)&(_reg) = __myval__;  \
 } while (0)
 
 /**
@@ -45,3 +45,5 @@ do {                                         \
 
 #define dsb(type) asm volatile("dsb " type ::: "memory")
 #define isb(type) asm volatile("isb " type ::: "memory")
+
+#define arrayLen(x) (sizeof(x) / sizeof(x[0]))

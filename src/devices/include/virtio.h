@@ -1,3 +1,6 @@
+#ifndef VIRTIO_H
+#define VIRTIO_H
+
 #include "jerryTypes.h"
 #include "libfdt.h"
 
@@ -12,7 +15,10 @@ typedef volatile struct __attribute__((packed)) {
 	u32 DeviceFeaturesSel;
 	u32 _reserved0[2];
 	u32 DriverFeatures;
-	u32 DriverFeaturesSel;
+	// Affects DriverFeatures. 
+	// DriverFeaturesSel=0 -> DriverFeatures[31:0]
+	// DriverFeaturesSel=1 -> DriverFeatures[63:32]
+	u32 DriverFeaturesSel; 
 	u32 _reserved1[2];
 	u32 QueueSel;
 	u32 QueueNumMax;
@@ -52,13 +58,13 @@ typedef volatile struct __attribute__((packed)) {
 #define VIRTIO_STATUS_DRIVER_OK          (4)
 #define VIRTIO_STATUS_DEVICE_NEEDS_RESET (64)
 
-struct virtio_cap {
+typedef struct _virtio_cap {
 	char *name;
 	u32 bit;
 	bool support;
 	char *help;
-};
+} virtioCapability;
 
 bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset);
 
-
+#endif // VIRTIO_H
