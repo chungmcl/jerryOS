@@ -3,17 +3,23 @@
 
 /* Defined from virtio-v1.0-cs04 spec */
 
-/* Feature bits */
-#define VIRTIO_BLK_F_SIZE_MAX   (1)  // Maximum size of any single segment is in size_max.
-#define VIRTIO_BLK_F_SEG_MAX    (2)  // Maximum number of segments in a request is in seg_max.
-#define VIRTIO_BLK_F_GEOMETRY   (4)  // Disk-style geometry specified in geometry.
-#define VIRTIO_BLK_F_RO         (5)  // Device is read-only.
-#define VIRTIO_BLK_F_BLK_SIZE   (6)  // Block size of disk is in blk_size.
-#define VIRTIO_BLK_F_FLUSH      (9)  // Cache flush command support.
-#define VIRTIO_BLK_F_TOPOLOGY   (10) // Device exports information on optimal I/O alignment.
-#define VIRTIO_BLK_F_CONFIG_WCE (11) // Device can toggle its cache between writeback and writethrough modes.
-
 #define VIRTIO_BLK_BLOCK_SIZE 512
+
+// See virtio spec section 5.2.3
+typedef enum {
+  VIRTIO_BLK_F_SIZE_MAX = 1,
+  VIRTIO_BLK_F_SEG_MAX = 2,
+  VIRTIO_BLK_F_GEOMETRY = 4,
+  VIRTIO_BLK_F_RO = 5,
+  VIRTIO_BLK_F_BLK_SIZE = 6,
+  VIRTIO_BLK_F_FLUSH = 9,
+  VIRTIO_BLK_F_TOPOLOGY = 10,
+  VIRTIO_BLK_F_CONFIG_WCE = 11,
+  VIRTIO_F_RING_INDIRECT_DESC = 28,
+  VIRTIO_F_RING_EVENT_IDX = 29,
+  VIRTIO_F_VERSION_1 = 32
+} BlockDeviceCapability;
+
 /*
   This struct's fields must be little-endian.
   1. The device size can be read from capacity.
@@ -51,59 +57,3 @@ typedef struct virtio_blk_config {
   } topology;
   u8 writeback;
 } virtioBlkConfig;
-
-virtioCapability blkDevCaps[] = {
-	{ 
-    "VIRTIO_BLK_F_SIZE_MAX", 
-		1, false,
-	  "Maximum size of any single segment is in size_max." 
-	},
-	{ 
-    "VIRTIO_BLK_F_SEG_MAX", 
-    2, false,
-	  "Maximum number of segments in a request is in seg_max." 
-  },
-	{ "VIRTIO_BLK_F_GEOMETRY", 
-    4, 
-    false,
-	  "Disk-style geometry specified in geometry." 
-  },
-	{ 
-    "VIRTIO_BLK_F_RO", 
-    5, false, 
-    "Device is read-only." 
-  },
-	{ 
-    "VIRTIO_BLK_F_BLK_SIZE", 
-    6, false,
-	  "Block size of disk is in blk_size." 
-  },
-	{ 
-    "VIRTIO_BLK_F_FLUSH", 
-    9, false, 
-    "Cache flush command support."
-  },
-	{ "VIRTIO_BLK_F_TOPOLOGY", 
-    10, false,
-	  "Device exports information on optimal I/O alignment." 
-  },
-	{ 
-    "VIRTIO_BLK_F_CONFIG_WCE", 
-    11, false,
-	  "Device can toggle its cache between writeback and writethrough modes." 
-  },
-  { 
-    "VIRTIO_F_RING_INDIRECT_DESC", 
-    28, false,                     
-    "Negotiating this feature indicates that the driver can use descriptors with the VIRTQ_DESC_F_INDIRECT flag set, as described in 2.4.5.3 Indirect Descriptors." 
-  },              
-  { "VIRTIO_F_RING_EVENT_IDX", 
-    29, false,                 
-    "This feature enables the used_event and the avail_event fields as described in 2.4.7 and 2.4.8." 
-  },                      
-  { 
-    "VIRTIO_F_VERSION_1", 
-    32, false,                      
-    "This indicates compliance with this specification, giving a simple way to detect legacy devices or drivers." 
-  },
-};

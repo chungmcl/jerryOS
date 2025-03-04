@@ -48,9 +48,11 @@ typedef volatile struct __attribute__((packed)) {
 
 #define VIRTIO_MAGIC   0x74726976
 #define VIRTIO_VERSION 0x2
+
 #define VIRTIO_DEV_NET 0x1
 #define VIRTIO_DEV_BLK 0x2
 
+// bit values
 #define VIRTIO_STATUS_ACKNOWLEDGE        (1)
 #define VIRTIO_STATUS_DRIVER             (2)
 #define VIRTIO_STATUS_FAILED             (128)
@@ -59,12 +61,12 @@ typedef volatile struct __attribute__((packed)) {
 #define VIRTIO_STATUS_DEVICE_NEEDS_RESET (64)
 
 typedef struct _virtio_cap {
-	char *name;
 	u32 bit;
 	bool support;
-	char *help;
+	char* name;
+	char* help;
 } virtioCapability;
 
-bool setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset);
+s32 setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset, void* output);
 
 #endif // VIRTIO_H

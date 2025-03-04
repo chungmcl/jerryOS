@@ -20,7 +20,10 @@ bool setupDevices(const void* deviceTreeAddress) {
      */ 
     {
       if (strStartsWith(currNodeName, "virtio_mmio")) {
-        if (!setupVirtIODevice(deviceTreeAddress, currNodeOffset)) return false;
+        u64 output;
+        if (setupVirtIODevice(deviceTreeAddress, currNodeOffset, &output) == -1) {
+          // device was not able to be setup
+        }
       }
     }
     /* * */
