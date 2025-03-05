@@ -13,7 +13,7 @@ all:
 # https://lld.llvm.org
 # https://lld.llvm.org/ELF/linker_script.html
 # -T <script>             Specify <script> as linker script
-# Note that -T only works with ELF, not with MachO -- hence the need for --target=aarch64-unknown-linux-gnu
+# Note that -T only works with ELF, not with MachO -- hence the need for --target=aarch64-unknown-$(NAME)-elf
 	clang -g -o $(BUILD_DIR)/$(NAME) \
 		-I$(SRC_DIR)/include \
 		-I$(SRC_DIR)/jerryLibc/include \
@@ -25,7 +25,7 @@ all:
 		$(SRC_DIR)/devices/libfdtLite/fdt.c $(SRC_DIR)/devices/libfdtLite/fdt_ro.c \
 		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
 		-T $(SRC_DIR)/link.lds \
-		--target=aarch64-unknown-linux-gnu \
+		--target=aarch64-unknown-$(NAME)-elf \
 		-nostdlib -nostdinc -fno-builtin -static -v
 	
 	@echo "--------------------------------------------------"
