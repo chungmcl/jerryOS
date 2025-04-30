@@ -31,23 +31,20 @@
 #define SET_BITS(from, to, msb, lsb) \
   ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
 
-#define GET_VALID_BIT(from)     (GET_BITS(from, 0, 0))
-#define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))
-
 #define GET_TABLE_DESCRIPTOR(from)     (GET_BITS(from, 1, 1))
 #define SET_TABLE_DESCRIPTOR(from, to) (SET_BITS(from, 1, 1))
-
-// Same for all stages
-#define GET_ACCESS_FLAG(from)     (GET_BITS(from, 10, 10))
-#define SET_ACCESS_FLAG(from, to) (SET_BITS(from, to, 10, 10))
 
 #define GET_NEXT_LEVEL_TABLE_ADDRESS(from)     (GET_BITS(from, 47, 14))
 #define SET_NEXT_LEVEL_TABLE_ADDRESS(from, to) (SET_BITS(from, to, 47, 14))
 
 /*
- *  ________________________________________________________
- *  | Stage 1 and below (unless overridden by lower stage) |
- *  --------------------------------------------------------
+ * 
+ */
+
+/*
+ *  __________________________________
+ *  | Stage 1 Page/Block Descriptors |
+ *  ----------------------------------
  * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
@@ -62,10 +59,19 @@
  */
 
 /*
- * TODO: [7:6]
+ * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
+ * Stage 1 Indirect permissions are disabled -> [7:6] is AP
  */
+#define GET_AP(from)     (GET_BITS(from, 7, 6))
+#define SET_AP(from, to) (SET_BITS(from, to, 7, 6))
 
-// TODO: [11]
+/*
+ * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
+ * jerry will use EL1&0;
+ * The translation regime supports two privilege levels -> [11] is Not global (nG)
+ */
+#define GET_NG(from) (GET_BITS(from, 11, 11))
+#define SET_NG(from, to) (SET_BITS(from, to, 11, 11))
 
 /*
  * FEAT_LPA2 is not implemented -> TCR_ELx.DS is 0;
@@ -76,9 +82,21 @@
 
 // FEAT_THE is not implemented -> The Effective value of PnCH is 0 -> [52] is Contiguous (same as Stage 2)
 
-// TODO: [53]
+/*
+ * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
+ * The translation regime supports two privilege levels -> [53] is PXN
+ */
+#define GET_PXN(from) (GET_BITS(from, 53, 53))
+#define SET_PXN(from, to) (SET_BITS(from, to, 53, 53))
 
-// TODO: [54]
+/*
+ * FEAT_NV, FEAT_NV2 are not implemented -> HCR_EL2.{NV,NV1} cannot be {1,1};
+ * jerry will use EL1&0 with HCR_EL2.{NV,NV1} = {0,0};
+ * The translation regime supports two privilege levels ->
+ * [54] is Unprivileged Execute-never (UXN)
+ */
+#define GET_UXN(from) (GET_BITS(from, 54, 54))
+#define SET_UXN(from, to) (SET_BITS(from, to, 54, 54))
 
 // [55] is IGNORED
 
@@ -89,12 +107,12 @@
  * Non-secure OR Secure state -> [63] is IGNORED
  */
 
-/***********************************END STAGE 1********************************************* */
+/*********************************** END STAGE 1 ***********************************/
 
 /*
- *  ________________________________________________________
- *  | Stage 2 and below (unless overridden by lower stage) |
- *  --------------------------------------------------------
+ *  _________________________________________________________________________________________
+ *  | Stage 1 & 2 Page/Block Descriptors (unless overridden by a Stage 1 definition above)  |
+ *  -----------------------------------------------------------------------------------------
  * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
@@ -105,8 +123,8 @@
 #define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))
 
 /*
- * Block descriptor 0, for lookup levels less than lookup level 3.
- * Page descriptor 1, for lookup level 3.
+ * Descriptor Type = 0 -> Block descriptor, for lookup levels less than lookup level 3.
+ * Descriptor type = 1 -> Page descriptor, for lookup level 3.
  */
 #define GET_DESCRIPTOR_TYPE(from)     (GET_BITS(from, 1, 1))
 #define SET_DESCRIPTOR_TYPE(from, to) (SET_BITS(from, to, 1, 1))
@@ -188,7 +206,7 @@
  */
 
 /*
- * FEAT_HPDS2, Translation Table Page-Based is implemented ->
+ * FEAT_HPDS2: Translation Table Page-Based is implemented ->
  *  • [62:60] is PBHA[3:1] if PBHA bit is enabled 
  *    by the corresponding TCR_ELx.HWUnn control bit.
  *  • [62:60] is reserved for use by a System MMU if PBHA bit is NOT enabled 
@@ -205,4 +223,3 @@
  * jerry will not use Realm state;
  * Non-secure OR Secure state -> [63] is RES0
  */
-
