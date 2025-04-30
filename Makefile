@@ -17,6 +17,7 @@ all:
 	clang -g -o $(BUILD_DIR)/$(NAME) \
 		-I$(SRC_DIR)/include \
 		-I$(SRC_DIR)/jerryLibc/include \
+		-I$(SRC_DIR)/memory/include \
 		-I$(SRC_DIR)/devices/libfdtLite/include \
 		-I$(SRC_DIR)/devices/include \
 		$(SRC_DIR)/start.asm \

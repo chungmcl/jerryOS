@@ -2,6 +2,10 @@
 .global _start
 
 _start:
+  // Grab the EL number for funsies
+  mrs x2, CurrentEL
+  lsr x2, x2, #2  // Extract EL number
+
   // Set the stack pointer to a specific memory address.
   // QEMU will have our kernel's .text start at 0x40080000, so
   // placing the stack arbitrarily at 0xF000 bytes after the start of .text.
