@@ -1,135 +1,165 @@
 #include "jerryTypes.h"
 
 /*
- * For the Cortex-A710 processor jerry is designed to run on:
- * Feature      Implemented?
- * -----------  ------------
- * FEAT_BBM     ❌
- * FEAT_BTI     ❌
- * FEAT_HAFDBS  ✅
- * FEAT_HAFT    ❌
- * FEAT_HPDS2   ✅
- * FEAT_LPA     ❌
- * FEAT_LPA2    ❌
- * FEAT_NV      ❌
- * FEAT_NV2     ❌
- * FEAT_S1PIE   ❌
- * FEAT_TCR2    ❌
- * FEAT_THE     ✅
- * FEAT_XNX     ❌
- */
+ * Notes for how to interpret what bits represent in TTEs via the A-Profile Reference:
+ * 
+ * 1. jerry will run on a Cortex-A710 processor.
+ *    Cortex-A710 processor features (non-exhaustive, just some that affect TTE bits):
+ *    Feature      Implemented?
+ *    -----------  ------------
+ *    FEAT_BBM     ❌            
+ *    FEAT_BTI     ❌
+ *    FEAT_HAFDBS  ✅            
+ *    • -> Support for hardware update of the Access flag for Block & Page descriptors
+ *    • & ID_AA64MMFR1_EL1.HAFDBS=0b0010 -> Support for hardware update of dirty state
+ *    FEAT_HAFT    ❌            
+ *    • -> NO support for hardware update of the Access flag for Table descriptors
+ *    FEAT_HPDS2   ✅
+ *    FEAT_LPA     ❌
+ *    FEAT_LPA2    ❌            
+ *    • -> TCR_EL{1,2}.DS=0 & RES0
+ *    • -> VTCR_EL2=0 & RES0
+ *    FEAT_LVA     ❌
+ *    FEAT_NV      ❌
+ *    FEAT_NV2     ❌
+ *    FEAT_S1PIE   ❌
+ *    FEAT_TCR2    ❌
+ *    FEAT_THE     ❌
+ *    • -> Effective value of PnCH=0 & RES0
+ *    FEAT_XNX     ❌
+ * 
+ * 2. jerry will use a 16KB translation granule.
+ * 
+ * 3. jerry will not use Secure state (no use of ARM Realms)
+*/
 
- /*
-  * Effective value A register control field, meaning a field in a register that controls some aspect of the behavior, can be
-  * described as having an Effective value:
-  * • In some cases, the description of a control a specifies that when control a is active it causes a
-  *   register control field b to be treated as having a fixed value for all purposes other than direct
-  *   reads, or direct reads and direct writes, of the register containing control field b. When control
-  *   a is active that fixed value is described as the Effective value of register control field b. For
-  *   example, when the value of HCR.DC is 1, the Effective value of HCR.VM is 1, regardless of
-  *   its actual value.
-  *   In other cases, in some contexts a register control field b is not implemented or is not
-  *   accessible, but behavior of the PE is as if control field b was implemented and accessible, and
-  *   had a particular value. In this case, that value is the Effective value of register control field b.
-  *   Note:
-  *     Where a register control field is introduced in a particular version of the architecture, and is not
-  *     implemented in an earlier version of the architecture, typically it will have an Effective value in
-  *     that earlier version of the architecture.
-  * • Otherwise, the Effective value of a register control field is the value of that field.
-  */
+/*
+ * From ARM docs:
+ * "Effective value A register control field, meaning a field in a register that controls some aspect of the behavior, can be
+ * described as having an Effective value:
+ * • In some cases, the description of a control a specifies that when control a is active it causes a
+ *   register control field b to be treated as having a fixed value for all purposes other than direct
+ *   reads, or direct reads and direct writes, of the register containing control field b. When control
+ *   a is active that fixed value is described as the Effective value of register control field b. For
+ *   example, when the value of HCR.DC is 1, the Effective value of HCR.VM is 1, regardless of
+ *   its actual value.
+ *   In other cases, in some contexts a register control field b is not implemented or is not
+ *   accessible, but behavior of the PE is as if control field b was implemented and accessible, and
+ *   had a particular value. In this case, that value is the Effective value of register control field b.
+ *   Note:
+ *     Where a register control field is introduced in a particular version of the architecture, and is not
+ *     implemented in an earlier version of the architecture, typically it will have an Effective value in
+ *     that earlier version of the architecture.
+ * • Otherwise, the Effective value of a register control field is the value of that field."
+*/
 
-#define N_BITS(n) ((1ULL << (n + 1)) - 1)
+#define N_BITS(n) \
+  ((1ULL << (n + 1)) - 1)
+
 #define GET_BITS(from, msb, lsb) \
   (((from) >> lsb) & N_BITS(msb - lsb))
+  
 #define SET_BITS(from, to, msb, lsb) \
   ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
 
+/**************** STAGE 1 TABLE DESCRIPTOR DEFS ****************/
+
+// jerry will not use Secure state -> [63] is RES0
 
 /*
- * Stage 1 Table Descriptor
- */
-
-/**************** END STAGE 1 TABLE DESCRIPTOR DEFS ****************/
-
-/*
- * Stage 2 Table Descriptor
- */
-
-#define GET_TABLE_DESCRIPTOR(from)     (GET_BITS(from, 1, 1))
-#define SET_TABLE_DESCRIPTOR(from, to) (SET_BITS(from, 1, 1))
-
-// [7:2] are IGNORED
-
-/*
- * jerry will use a 16KB translation granule w/ 48-bit OA;
- * The 4KB or 16KB translation granule is used, and the Effective value of VTCR_EL2.DS is 0 ->
- * [9:8] is IGNORED
- */
-
-/*
- * FEAT_HAFT is not implemented; 
- * Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
- */
-
-// [11] is IGNORED
-
-/*
- * FEAT_LPA2 is not implemented -> VTCR_EL2.DS is RES0;
- * [47:14] is NLTA
- */
-#define GET_NLTA(from)     (GET_BITS(from, 47, 14))
-#define SET_NLTA(from, to) (SET_BITS(from, to, 47, 14))
-
-// [50] is RESO0
-// [51] is IGNORED
-
-/*
- * FEAT_THE is not implemented -> Effecive value of PnCH is 0;
- * The effecive value of PnCH is 0 -> [52] is IGNORED
- */
-
-// [58:53] is IGNORED
-
-/*
- * Hierarchical permissions are enabled and the translation 
- * regime supports two privilege levels -> [59] is PXNTable
- */
-#define GET_PXNTABLE(from)     (GET_BITS(from, 59, 59))
-#define SET_PXNTABLE(from, to) (SET_BITS(from, to, 59, 59))
+ * Hierarchical permissions are enabled -> [62:61] is APTable
+*/
+#define GET_APTABLE(from)     (GET_BITS(from 62, 61))
+#define SET_APTABLE(from, to) (SET_BITS(from, to, 62, 61))
 
 /*
  * Hierarchical permissions are enabled and the translation 
  * regime supports two privilege levels -> [60] is UXNTable
- */
+*/
 #define GET_UXNTABLE(from)     (GET_BITS(from, 60, 60))
 #define SET_UXNTABLE(from, to) (SET_BITS(from, to, 60, 60))
 
 /*
- * Hierarchical permissions are enabled -> [62:61] is APTable
- */
-#define GET_APTABLE(from)     (GET_BITS(from 62, 61))
-#define SET_APTABLE(from, to) (SET_BITS(from, to, 62, 61))
+ * Hierarchical permissions are enabled and the translation 
+ * regime supports two privilege levels -> [59] is PXNTable
+*/
+#define GET_PXNTABLE(from)     (GET_BITS(from, 59, 59))
+#define SET_PXNTABLE(from, to) (SET_BITS(from, to, 59, 59))
 
-// jerry will not use Secure state; The Security state is not Secure state -> [63] is RES0
+// [58:53] is IGNORED
+
+// PnCH=0 -> [52] is IGNORED
+
+// [51] is IGNORED
+
+// [50] is RES0
+
+// TCR_ELx=0 -> [49:48] is RES0
+
+// [47:12] inherits ⬇️
+
+// [11] is IGNORED
+
+/*
+ * Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
+*/
+
+// TCR_ELx.DS is 0 -> [9:8] is IGNORED
+
+// [7:2] inherits ⬇️
+
+// [1] inherits ⬇️
+
+// [0] inherits ⬇️
+
+/**************** END STAGE 1 TABLE DESCRIPTOR DEFS ****************/
+
+/**************** STAGE 2 TABLE DESCRIPTOR DEFS ****************/
+
+// [63] is RES0
+
+// [62:59] is RES0 if Stage 2 Indirect permissions are disabled; else IGNORED
+
+// [58:51] is IGNORED
+
+// [50] is RESO0
+
+// VTCR_EL2=0 -> [49:48] is RES0
+
+/*
+ * 16KB translation granule is used -> [47:14] is NLTA, [13:12] are RES0
+*/
+#define GET_NLTA(from)     (GET_BITS(from, 47, 14))
+#define SET_NLTA(from, to) (SET_BITS(from, to, 47, 14))
+
+// [11] is IGNORED
+
+// Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
+
+// jerry will use a 16KB translation granule & VTCR_EL2.DS is 0 -> [9:8] is IGNORED
+
+// [7:2] are IGNORED
+
+#define GET_TABLE_DESCRIPTOR(from)     (GET_BITS(from, 1, 1))
+#define SET_TABLE_DESCRIPTOR(from, to) (SET_BITS(from, 1, 1))
+
+// [0] inherits ⬇️
 
 /**************** END STAGE 2 TABLE DESCRIPTOR DEFS ****************/
 
+/**************** STAGE 1 PAGE/BLOCK DESCRIPTOR DEFS ****************/
 /*
- *  _________________________________
- *  | Stage 1 Page/Block Descriptor |
- *  ---------------------------------
- * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
- */
+*/
+
+// [0] inherits ⬇️
+
 #define GET_ATTRINDX(from)     (GET_BITS(from, 4, 2))
 #define SET_ATTRINDX(from, to) (SET_BITS(from, to, 4, 2))
 
-/* 
- * jerry will not use Realm state;
- * The access is from Non-secure state -> [5] is RES0
- */
+// jerry will not use Secure state -> [5] is RES0
 
 /*
  * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
@@ -182,15 +212,13 @@
 
 /**************** END STAGE 1 PAGE/BLOCK DESCRIPTOR DEFS ****************/
 
+/**************** STAGE 2 PAGE/BLOCK DESCRIPTOR DEFS ****************/
 /*
- *  ________________________________________________________________________________________
- *  | Stage 1 & 2 Page/Block Descriptor (unless overridden by a Stage 1 definition above)  |
- *  ----------------------------------------------------------------------------------------
- * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
- */
+*/
+
 // If value is 0, the descriptor is invalid
 #define GET_VALID_BIT(from)     (GET_BITS(from, 0, 0))
 #define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))

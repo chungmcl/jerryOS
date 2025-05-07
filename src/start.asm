@@ -8,6 +8,10 @@ _start:
 
   // Grab the "AArch64 Processor Feature Register 0" for funsies 🤪
   mrs x3, ID_AA64PFR0_EL1
+  
+  mrs x4, ID_AA64MMFR1_EL1
+
+  mrs x5, ID_AA64PFR1_EL1
 
   // Set the stack pointer to a specific memory address.
   // QEMU will have RAM start at 0x40080000, and the DTB is 
