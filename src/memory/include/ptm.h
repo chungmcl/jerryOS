@@ -2,28 +2,41 @@
 
 /*
  * For the Cortex-A710 processor jerry is designed to run on:
- * • FEAT_LPA is not implemented on Cortex-A710 -> VCTR_EL2.DS is 0 -> 48-bit NLTA
- * • FEAT_HAFDBS is implemented but not FEAT_HAFT on Cortex-A710
- * • FEAT_THE is not implemented -> bit 52 is the Contiguous bit
- * • FEAT_S1PIE is not implemented -> bit 51 is the Dirty bit modifier (DBM)
- * • FEAT_BBM is not implemented -> bit 16 is RES0 in a block descriptor
- * • FEAT_HPDS2 is implemented
- * In addition, design decisions that we are making:
- * • Granule Size = 16KB
- *    • -> For the block descriptors:
- *      • OAB is [47:36] if the Effective value of TCR_ELx.DS is 1, 
- *        and the descriptor is a level 1 Block descriptor. 
- *        Descriptor bits [35:17] are RES0.
- *      • OAB is [47:25] if the descriptor is a level 2 Block descriptor. 
- *        Descriptor bits [24:17] are RES0.
- *    • -> For the page descriptors:
- *      • OAB is [47:14]. 
- *        Descriptor bits [13:12] are RES0.
- *    • "OAB is the OA base that is appended to the IA supplied 
- *       to the translation stage to produce the final OA supplied
- *       by the translation stage."
- * • OA (output address) Size = 48-bits (sort of required due to absence of FEAT_LPA)
+ * Feature      Implemented?
+ * -----------  ------------
+ * FEAT_BBM     ❌
+ * FEAT_BTI     ❌
+ * FEAT_HAFDBS  ✅
+ * FEAT_HAFT    ❌
+ * FEAT_HPDS2   ✅
+ * FEAT_LPA     ❌
+ * FEAT_LPA2    ❌
+ * FEAT_NV      ❌
+ * FEAT_NV2     ❌
+ * FEAT_S1PIE   ❌
+ * FEAT_TCR2    ❌
+ * FEAT_THE     ✅
+ * FEAT_XNX     ❌
  */
+
+ /*
+  * Effective value A register control field, meaning a field in a register that controls some aspect of the behavior, can be
+  * described as having an Effective value:
+  * • In some cases, the description of a control a specifies that when control a is active it causes a
+  *   register control field b to be treated as having a fixed value for all purposes other than direct
+  *   reads, or direct reads and direct writes, of the register containing control field b. When control
+  *   a is active that fixed value is described as the Effective value of register control field b. For
+  *   example, when the value of HCR.DC is 1, the Effective value of HCR.VM is 1, regardless of
+  *   its actual value.
+  *   In other cases, in some contexts a register control field b is not implemented or is not
+  *   accessible, but behavior of the PE is as if control field b was implemented and accessible, and
+  *   had a particular value. In this case, that value is the Effective value of register control field b.
+  *   Note:
+  *     Where a register control field is introduced in a particular version of the architecture, and is not
+  *     implemented in an earlier version of the architecture, typically it will have an Effective value in
+  *     that earlier version of the architecture.
+  * • Otherwise, the Effective value of a register control field is the value of that field.
+  */
 
 #define N_BITS(n) ((1ULL << (n + 1)) - 1)
 #define GET_BITS(from, msb, lsb) \
@@ -31,20 +44,80 @@
 #define SET_BITS(from, to, msb, lsb) \
   ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
 
+
+/*
+ * Stage 1 Table Descriptor
+ */
+
+/**************** END STAGE 1 TABLE DESCRIPTOR DEFS ****************/
+
+/*
+ * Stage 2 Table Descriptor
+ */
+
 #define GET_TABLE_DESCRIPTOR(from)     (GET_BITS(from, 1, 1))
 #define SET_TABLE_DESCRIPTOR(from, to) (SET_BITS(from, 1, 1))
 
-#define GET_NEXT_LEVEL_TABLE_ADDRESS(from)     (GET_BITS(from, 47, 14))
-#define SET_NEXT_LEVEL_TABLE_ADDRESS(from, to) (SET_BITS(from, to, 47, 14))
+// [7:2] are IGNORED
 
 /*
- * 
+ * jerry will use a 16KB translation granule w/ 48-bit OA;
+ * The 4KB or 16KB translation granule is used, and the Effective value of VTCR_EL2.DS is 0 ->
+ * [9:8] is IGNORED
  */
 
 /*
- *  __________________________________
- *  | Stage 1 Page/Block Descriptors |
- *  ----------------------------------
+ * FEAT_HAFT is not implemented; 
+ * Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
+ */
+
+// [11] is IGNORED
+
+/*
+ * FEAT_LPA2 is not implemented -> VTCR_EL2.DS is RES0;
+ * [47:14] is NLTA
+ */
+#define GET_NLTA(from)     (GET_BITS(from, 47, 14))
+#define SET_NLTA(from, to) (SET_BITS(from, to, 47, 14))
+
+// [50] is RESO0
+// [51] is IGNORED
+
+/*
+ * FEAT_THE is not implemented -> Effecive value of PnCH is 0;
+ * The effecive value of PnCH is 0 -> [52] is IGNORED
+ */
+
+// [58:53] is IGNORED
+
+/*
+ * Hierarchical permissions are enabled and the translation 
+ * regime supports two privilege levels -> [59] is PXNTable
+ */
+#define GET_PXNTABLE(from)     (GET_BITS(from, 59, 59))
+#define SET_PXNTABLE(from, to) (SET_BITS(from, to, 59, 59))
+
+/*
+ * Hierarchical permissions are enabled and the translation 
+ * regime supports two privilege levels -> [60] is UXNTable
+ */
+#define GET_UXNTABLE(from)     (GET_BITS(from, 60, 60))
+#define SET_UXNTABLE(from, to) (SET_BITS(from, to, 60, 60))
+
+/*
+ * Hierarchical permissions are enabled -> [62:61] is APTable
+ */
+#define GET_APTABLE(from)     (GET_BITS(from 62, 61))
+#define SET_APTABLE(from, to) (SET_BITS(from, to, 62, 61))
+
+// jerry will not use Secure state; The Security state is not Secure state -> [63] is RES0
+
+/**************** END STAGE 2 TABLE DESCRIPTOR DEFS ****************/
+
+/*
+ *  _________________________________
+ *  | Stage 1 Page/Block Descriptor |
+ *  ---------------------------------
  * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
@@ -70,7 +143,7 @@
  * jerry will use EL1&0;
  * The translation regime supports two privilege levels -> [11] is Not global (nG)
  */
-#define GET_NG(from) (GET_BITS(from, 11, 11))
+#define GET_NG(from)     (GET_BITS(from, 11, 11))
 #define SET_NG(from, to) (SET_BITS(from, to, 11, 11))
 
 /*
@@ -86,7 +159,7 @@
  * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
  * The translation regime supports two privilege levels -> [53] is PXN
  */
-#define GET_PXN(from) (GET_BITS(from, 53, 53))
+#define GET_PXN(from)     (GET_BITS(from, 53, 53))
 #define SET_PXN(from, to) (SET_BITS(from, to, 53, 53))
 
 /*
@@ -95,7 +168,7 @@
  * The translation regime supports two privilege levels ->
  * [54] is Unprivileged Execute-never (UXN)
  */
-#define GET_UXN(from) (GET_BITS(from, 54, 54))
+#define GET_UXN(from)     (GET_BITS(from, 54, 54))
 #define SET_UXN(from, to) (SET_BITS(from, to, 54, 54))
 
 // [55] is IGNORED
@@ -107,12 +180,12 @@
  * Non-secure OR Secure state -> [63] is IGNORED
  */
 
-/*********************************** END STAGE 1 ***********************************/
+/**************** END STAGE 1 PAGE/BLOCK DESCRIPTOR DEFS ****************/
 
 /*
- *  _________________________________________________________________________________________
- *  | Stage 1 & 2 Page/Block Descriptors (unless overridden by a Stage 1 definition above)  |
- *  -----------------------------------------------------------------------------------------
+ *  ________________________________________________________________________________________
+ *  | Stage 1 & 2 Page/Block Descriptor (unless overridden by a Stage 1 definition above)  |
+ *  ----------------------------------------------------------------------------------------
  * 
  * In this table, OAB is the OA base that is appended to the IA 
  * supplied to the translation stage to produce the final OA 
@@ -134,14 +207,14 @@
  * • stage 1 and stage 2 memory type and Cacheability attributes are combined
  * • [5:2] are MemAttr
  */
-#define GET_MEMATTR(from) (GET_BITS(from, 5, 2))
+#define GET_MEMATTR(from)     (GET_BITS(from, 5, 2))
 #define SET_MEMATTR(from, to) (SET_BITS(from, to, 5, 2))
 
 /*
  * jerry uses direct permissions; Stage 2 Indirect permissions are disabled ->
  * • [7:6] are S2AP
  */
-#define GET_S2AP(from) (GET_BITS(from, 7, 6))
+#define GET_S2AP(from)     (GET_BITS(from, 7, 6))
 #define SET_S2AP(from, to) (SET_BITS(from, to, 7, 6))
 
 /*
@@ -149,7 +222,7 @@
  * The 4KB or 16KB translation granule is used, and the Effective value of TCR_ELx.DS is 0 ->
  * • [9:8] are Shareability
  */
-#define GET_SHAREABILITY(from) (GET_BITS(from, 9, 8))
+#define GET_SHAREABILITY(from)     (GET_BITS(from, 9, 8))
 #define SET_SHAREABILITY(from, to) (SET_BITS(from, to, 9, 8))
 
 /*
@@ -165,7 +238,7 @@
  * jerry will use 16KB granule; 
  * Page descriptor & The 16KB translation granule is used -> [47:14] is OAB ([13:12] are RES0)
  */
-#define GET_PAGE_OAB(from) (GET_BITS(from, 47, 14))
+#define GET_PAGE_OAB(from)     (GET_BITS(from, 47, 14))
 #define SET_PAGE_OAB(from, to) (GET_BITS(from, to, 47, 14))
 
 // FEAT_LPA, FEAT_BBM are not implemented & L2 Block descriptor -> [16:12] is RES0
@@ -174,23 +247,23 @@
  * jerry will use 16KB granule; 
  * L2 Block descriptor & The 16KB translation granule is used -> [47:25] is OAB ([24:17] are RES0)
  */
-#define GET_BLOCK_OAB(from) (GET_BITS(from, 47, 25))
+#define GET_BLOCK_OAB(from)     (GET_BITS(from, 47, 25))
 #define SET_BLOCK_OAB(from, to) (SET_BITS(from, to, 47, 25))
 
 // FEAT_LPA2 is not implemented -> TCR_ELx.DS is 0 -> [49:48] are RES0
 
 // FEAT_S1PIE is not implemented -> Stage 1 Indirect permissions not enabled -> [51] is the Dirty bit modifier (DBM)
-#define GET_DBM(from) (GET_BITS(from, 51, 51))
+#define GET_DBM(from)     (GET_BITS(from, 51, 51))
 #define SET_DBM(from, to) (SET_BITS(from, to, 51, 51))
 
 
-#define GET_CONTIGUOUS(from) (GET_BITS(from, 52, 52))
+#define GET_CONTIGUOUS(from)     (GET_BITS(from, 52, 52))
 #define SET_CONTIGUOUS(from, to) (SET_BITS(from, to, 52, 52))
 
 // FEAT_XNX is not implemented -> [53] is RES0
 
 // FEAT_XNX is not implemented -> [54] is Execute-never (XN)
-#define GET_XN(from) (GET_BITS(from, 54, 54))
+#define GET_XN(from)     (GET_BITS(from, 54, 54))
 #define SET_XN(from, to) (SET_BITS(from, to, 54, 54))
 
 /*
@@ -216,10 +289,12 @@
  * 
  *  • (See "Page Based Hardware attributes.")
  */
-#define GET_PBHA(from) (GET_BITS(from, 62, 59))
+#define GET_PBHA(from)     (GET_BITS(from, 62, 59))
 #define SET_PBHA(from, to) (SET_BITS(from, to, 62, 59))
 
 /*
  * jerry will not use Realm state;
  * Non-secure OR Secure state -> [63] is RES0
  */
+
+ /**************** END STAGE 2 PAGE/BLOCK DESCRIPTOR DEFS ****************/
