@@ -2,16 +2,17 @@
 .global _start
 
 _start:
-  // Grab the EL number for funsies 🤪
+  // Grab some system registers for funsies 🤪
   mrs x2, CurrentEL
-  lsr x2, x2, #2  // Extract EL number
+  lsr x2, x2, #2  // Extract EL number according to formula (right shift 2)
 
-  // Grab the "AArch64 Processor Feature Register 0" for funsies 🤪
   mrs x3, ID_AA64PFR0_EL1
   
   mrs x4, ID_AA64MMFR1_EL1
 
   mrs x5, ID_AA64PFR1_EL1
+  
+  mrs x6, ID_AA64MMFR3_EL1
 
   // Set the stack pointer to a specific memory address.
   // QEMU will have RAM start at 0x40080000, and the DTB is 
