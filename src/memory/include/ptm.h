@@ -26,14 +26,12 @@
  *      • -> Stage 1 Direct permissions are used
  *    FEAT_TCR2    ❌
  *      • -> TCR2_EL1, TCR2_EL2, and their associated trap controls are not implemented
- *      • note: Although the ARM ref. manual states "FEAT_TCR2 is mandatory from 
- *              Armv8.9" (ARM DDI 0487, Page A2-142), and jerry is running on a Cortex 
- *              A710 which is Armv9.0, it is important to note that ARM states that "Arm®v9.0-A 
- *              architecture extends the architecture defined in the Armv8-A architectures up to Arm®v8.5-A." 
- *              (https://developer.arm.com/documentation/101800/0201/The-Cortex-A710--core/Supported-standards-and-specifications) 
- *              -- in other words, Armv9.0 is not necessarily "greater than" Armv8.9; in reality it's Armv8.5
- *              with some extra features slapped on top. Therefore, it is expected that FEAT_TCR2
- *              is not implemented on the Cortex A710.
+ *      • note: Although the ARM ref. manual states "FEAT_TCR2 is mandatory from Armv8.9" (ARM DDI 0487, Page A2-142), and jerry is running on 
+ *              a Cortex A710 which is Armv9.0, it is important to note that ARM states that "Arm®v9.0-A architecture extends the architecture 
+ *              defined in the Armv8-A architectures up to Arm®v8.5-A." (https://developer.arm.com/documentation/101800/0201/The-Cortex-A710--core/Supported-standards-and-specifications) 
+ *              In other words, Armv9.0 is not necessarily "greater than" Armv8.9; in reality it's Armv8.5 with some extra features slapped on top. 
+ *              (Also see https://developer.arm.com/documentation/102378/0201/Armv8-x-and-Armv9-x-extensions-and-features)
+ *              Therefore, it is expected that FEAT_TCR2 is not implemented on the Cortex A710.
  *    FEAT_THE     ❌
  *      • -> Effective value of PnCH=0 & RES0
  *    FEAT_XNX     ❌
