@@ -4,11 +4,14 @@
  * Notes for how to interpret what bits represent in TTEs via the A-Profile Reference:
  * 
  * 1. jerry will run on a Cortex-A710 processor.
- *    Cortex-A710 processor features (non-exhaustive, just some that affect TTE bits):
+ *    Cortex-A710 processor features (non-exhaustive, just some that relate to/affect TTE bits):
  *    Feature      Implemented?
  *    -----------  ------------
- *    FEAT_BBM     ❌            
- *    FEAT_BTI     ❌
+ *    FEAT_AIE     ❌ 
+ *    FEAT_BBM     ✅
+ *      • & ID_AA64MMFR2_EL1.BBM = 0b0010	
+ *        -> Level 2 support for changing block size is supported
+ *    FEAT_BTI     ✅
  *    FEAT_HAFDBS  ✅
  *      • -> Support for hardware update of the Access flag for Block & Page descriptors
  *      • & ID_AA64MMFR1_EL1.HAFDBS=0b0010 -> Support for hardware update of dirty state
@@ -21,9 +24,30 @@
  *      • -> VTCR_EL2=0 & RES0
  *    FEAT_LVA     ❌
  *    FEAT_NV      ❌
+ *      • & (FEAT_NV2 not implemented) -> HCR_EL2.{NV, NV1}={0, 0} & {RES0,RES0}
  *    FEAT_NV2     ❌
+ *      • & (FEAT_NV not implemented) -> HCR_EL2.{NV, NV1}={0, 0} & {RES0,RES0}
+ *    FEAT_NV2p1   ❌
+ *    FEAT_S2FWB   ✅
+ *      • -> HCR_EL2.FWB is supported
+ *      • -> if HCR_EL2.FWB=0 -> the combination of stage 1 and stage 2 translations 
+ *           on memory type and cacheability attributes are as described in the 
+ *           Armv8.0 architecture. For more information, see 'Combining stage 1 and 
+ *           stage 2 memory type attributes'.
+ *      • -> if HCR_EL2.FWB=1 -> the encoding of the stage 2 memory type and cacheability 
+ *           attributes in bits[5:2] of the stage 2 Page or Block descriptors are as 
+ *           described in 'Stage 2 memory type and Cacheability attributes when 
+ *           FEAT_S2FWB is enabled'.
  *    FEAT_S1PIE   ❌
  *      • -> Stage 1 Direct permissions are used
+ *      • -> Stage 1 Indirect permissions are disabled
+ *    FEAT_S1POE   ❌
+ *      • -> Stage 1 Overlay permissions are disabled
+ *    FEAT_S2PIE   ❌
+ *      • -> Stage 2 Direct permissions are used
+ *      • -> Stage 2 Indirect permissions are disabled
+ *    FEAT_S2POE   ❌
+ *      • -> Stage 2 Overlay permissions are disabled
  *    FEAT_TCR2    ❌
  *      • -> TCR2_EL1, TCR2_EL2, and their associated trap controls are not implemented
  *      • note: Although the ARM ref. manual states "FEAT_TCR2 is mandatory from Armv8.9" (ARM DDI 0487, Page A2-142), and jerry is running on 
@@ -34,7 +58,10 @@
  *              Therefore, it is expected that FEAT_TCR2 is not implemented on the Cortex A710.
  *    FEAT_THE     ❌
  *      • -> Effective value of PnCH=0 & RES0
- *    FEAT_XNX     ❌
+ *      • -> Effective value of VTCR_EL2.AssuredOnly=0 & RES0
+ *    FEAT_XS      ❌
+ *    FEAT_XNX     ✅
+ *      • -> Distinction between EL0 and EL1 execute-never control at stage 2 supported
  * 
  * 2. jerry will use a 16KB translation granule.
  * 
@@ -42,23 +69,33 @@
 */
 
 /*
- * From ARM docs:
- * "Effective value A register control field, meaning a field in a register that controls some aspect of the behavior, can be
- * described as having an Effective value:
- * • In some cases, the description of a control a specifies that when control a is active it causes a
- *   register control field b to be treated as having a fixed value for all purposes other than direct
- *   reads, or direct reads and direct writes, of the register containing control field b. When control
- *   a is active that fixed value is described as the Effective value of register control field b. For
- *   example, when the value of HCR.DC is 1, the Effective value of HCR.VM is 1, regardless of
- *   its actual value.
- *   In other cases, in some contexts a register control field b is not implemented or is not
- *   accessible, but behavior of the PE is as if control field b was implemented and accessible, and
- *   had a particular value. In this case, that value is the Effective value of register control field b.
- *   Note:
- *     Where a register control field is introduced in a particular version of the architecture, and is not
- *     implemented in an earlier version of the architecture, typically it will have an Effective value in
- *     that earlier version of the architecture.
- * • Otherwise, the Effective value of a register control field is the value of that field."
+ * Some important definitions/info from ARM docs:
+ * • "Effective value: A register control field, meaning a field in a register that controls some aspect of the behavior, can be
+ *    described as having an Effective value:
+ *    • In some cases, the description of a control a specifies that when control a is active it causes a
+ *      register control field b to be treated as having a fixed value for all purposes other than direct
+ *      reads, or direct reads and direct writes, of the register containing control field b. When control
+ *      a is active that fixed value is described as the Effective value of register control field b. For
+ *      example, when the value of HCR.DC is 1, the Effective value of HCR.VM is 1, regardless of
+ *      its actual value.
+ *      In other cases, in some contexts a register control field b is not implemented or is not
+ *      accessible, but behavior of the PE is as if control field b was implemented and accessible, and
+ *      had a particular value. In this case, that value is the Effective value of register control field b.
+ *      Note:
+ *        Where a register control field is introduced in a particular version of the architecture, and is not
+ *        implemented in an earlier version of the architecture, typically it will have an Effective value in
+ *        that earlier version of the architecture.
+ *    • Otherwise, the Effective value of a register control field is the value of that field."
+ * • "Should Be Zero or Preserved (SBZP): The Large Physical Address Extension modifies the definition of SBZP for register bits that are reallocated by the extension, 
+ *    and as a result are SBZP in some but not all contexts. The generic definition of SBZP given here applies only to bits that are not affected by this modification. 
+ *    Hardware must ignore writes to the field. When writing this field, software must either write all 1s (sic) to this field, or, if the register is being restored from a 
+ *    previously read state, this field must be written previously read value. If this is not done, then the result is UNPREDICTABLE. This description can 
+ *    apply to a single bit that should be written as its preserved value or as 0, or to a field that should be written as its preserved value or as all 0s."
+ * • "RES0: A reserved bit or field with Should-Be-Zero-or-Preserved (SBZP) behavior. Used for fields in register descriptions. Also used 
+ *    for fields in architecturally defined data structures that are held in memory, for example in translation table descriptors. 
+ *    RES0 is not used in descriptions of instruction encodings. Within the architecture, there are some cases where a register bit or bitfield 
+ *    can be RES0 in some defined architectural context, but can have different defined behavior in a different architectural context. For any RES0 
+ *    bit or field, software must not rely on the bit or field reading as 0, and must use an SBZP policy to write to the bit or field."
 */
 
 #define N_BITS(n) \
@@ -162,9 +199,49 @@
  * supplied by the translation stage.
 */
 
+// jerry will not use Realms -> [63] is IGNORED
+
+// [62:59] inherits ⬇️ 
+
+// [58:56] is Reserved for software use
+
+// [55] is IGNORED
+
 /*
- * Stage 1 direct permissions are used -> [7:6] is AP
+ * HCR_EL2.{NV, NV1}={0, 0} & two privilege levels ->
+ * [54] is Unprivileged Execute-never (UXN)
 */
+#define GET_UXN(from)     (GET_BITS(from, 54, 54))
+#define SET_UXN(from, to) (SET_BITS(from, to, 54, 54))
+
+/*
+ * HCR_EL2.{NV, NV1}={0, 0} & two privilege levels ->
+ * -> [53] is PXN 
+*/
+#define GET_PXN(from)     (GET_BITS(from, 53, 53))
+#define SET_PXN(from, to) (SET_BITS(from, to, 53, 53))
+
+// [52] inherits ⬇️
+
+// [51] inherits ⬇️
+
+// FEAT_BTI is implemented -> [50] is Guarded Page (GP)
+#define GET_GP(from)     (GET_BITS(from, 50, 50))
+#define SET_GP(from, to) (SET_BITS(from, to, 50, 50))
+
+// TCR_ELx.DS is 0 & 16KB translation granule is used -> [49:48] is RES0
+
+// [47:12] inherits ⬇️
+
+// The translation regime supports two privilege levels -> [11] is Not global (nG)
+#define GET_NG(from)     (GET_BITS(from, 11, 11))
+#define SET_NG(from, to) (SET_BITS(from, to, 11, 11))
+
+// [10] inherits ⬇️
+
+// [9:8] inherits ⬇️
+
+// Stage 1 direct permissions are used -> [7:6] is AP
 #define GET_AP(from)     (GET_BITS(from, 7, 6))
 #define SET_AP(from, to) (SET_BITS(from, to, 7, 6))
 
@@ -173,49 +250,9 @@
 #define GET_ATTRINDX(from)     (GET_BITS(from, 4, 2))
 #define SET_ATTRINDX(from, to) (SET_BITS(from, to, 4, 2))
 
+// [1] inherits ⬇️
+
 // [0] inherits ⬇️
-
-/*
- * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
- * jerry will use EL1&0;
- * The translation regime supports two privilege levels -> [11] is Not global (nG)
-*/
-#define GET_NG(from)     (GET_BITS(from, 11, 11))
-#define SET_NG(from, to) (SET_BITS(from, to, 11, 11))
-
-/*
- * FEAT_LPA2 is not implemented -> TCR_ELx.DS is 0;
- * The 4KB or 16KB translation granule is used, and the Effective value of TCR_ELx.DS is 0 -> [49:48] is RES0
-*/
-
-// FEAT_BTI is not implemented -> [50] is RES0
-
-// FEAT_THE is not implemented -> The Effective value of PnCH is 0 -> [52] is Contiguous (same as Stage 2)
-
-/*
- * FEAT_TCR2 is not implemented | FEAT_S1PIE is not implemented -> stage 1 direct permissions;
- * The translation regime supports two privilege levels -> [53] is PXN
-*/
-#define GET_PXN(from)     (GET_BITS(from, 53, 53))
-#define SET_PXN(from, to) (SET_BITS(from, to, 53, 53))
-
-/*
- * FEAT_NV, FEAT_NV2 are not implemented -> HCR_EL2.{NV,NV1} cannot be {1,1};
- * jerry will use EL1&0 with HCR_EL2.{NV,NV1} = {0,0};
- * The translation regime supports two privilege levels ->
- * [54] is Unprivileged Execute-never (UXN)
-*/
-#define GET_UXN(from)     (GET_BITS(from, 54, 54))
-#define SET_UXN(from, to) (SET_BITS(from, to, 54, 54))
-
-// [55] is IGNORED
-
-// [58:56] are reserved for software use
-
-/*
- * jerry will not use Realm state;
- * Non-secure OR Secure state -> [63] is IGNORED
-*/
 
 /**************** END STAGE 1 PAGE/BLOCK DESCRIPTOR DEFS ****************/
 
@@ -226,9 +263,82 @@
  * supplied by the translation stage.
 */
 
-// If value is 0, the descriptor is invalid
-#define GET_VALID_BIT(from)     (GET_BITS(from, 0, 0))
-#define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))
+// jerry will not use Realms; Non-secure OR Secure state -> [63] is RES0
+
+/*
+ * FEAT_HPDS2 is implemented & FEAT_AIE is not implemented & FEAT_S{1,2}POE are not implemented ->
+ *  • [62:60] is:
+ *    • PBHA[3:1], if PBHA bit is enabled by the corresponding TCR_ELx.HWUnn control bit.
+ *    • reserved for use by a System MMU, if Stage 2 descriptor & PBHA bit is (sic, 
+ *      probably "is NOT?") enabled by the corresponding TCR_ELx.HWUnn control bit.
+ *    • IGNORED, if Stage 1 descriptor & [62:60] is IGNORED if PBHA bit is not enabled 
+ *      by the corresponding TCR_ELx.HWUnn control bit.
+ * 
+ *  • [59] is PBHA[0] if PBHA bit is enabled by the corresponding TCR_ELx.HWUnn control bit, else IGNORED.
+*/
+#define GET_PBHA(from)     (GET_BITS(from, 62, 59))
+#define SET_PBHA(from, to) (SET_BITS(from, to, 62, 59))
+
+// VTCR_EL2.AssuredOnly is 0 -> [58] is reserved for software use
+
+// [57:56] are reserved for software use
+
+// jerry will not use Realms; Security state other than Realm state -> [55] is IGNORED
+
+// FEAT_XNX is implemented & Stage 2 Indirect permissions disabled -> [54:53] is XN
+#define GET_XN(from)     (GET_BITS(from, 54, 53))
+#define SET_XN(from, to) (SET_BITS(from, to, 54, 53))
+
+/*
+ * • For Stage 1, PnCH=0 -> [52] is Contiguous 
+ * • For Stage 2, [52] is Contiguous
+*/
+#define GET_CONTIGUOUS(from)     (GET_BITS(from, 52, 52))
+#define SET_CONTIGUOUS(from, to) (SET_BITS(from, to, 52, 52))
+
+// Stage {1,2} Indirect permissions are disabled -> [51] is the Dirty bit modifier (DBM)
+#define GET_DBM(from)     (GET_BITS(from, 51, 51))
+#define SET_DBM(from, to) (SET_BITS(from, to, 51, 51))
+
+// [50] is RES0
+
+// jerry will use 16KB granule & TCR_ELx.DS is 0 -> [49:48] are RES0
+
+/*
+ * jerry will use 16KB granule ->
+ * • if Page descriptor -> [47:14] is OAB ([13:12] are RES0)
+ * • if Block descriptor -> [47:25] is OAB ([24:17] are RES0)
+*/
+#define GET_PAGE_OAB(from)      (GET_BITS(from, 47, 14))
+#define SET_PAGE_OAB(from, to)  (GET_BITS(from, to, 47, 14))
+#define GET_BLOCK_OAB(from)     (GET_BITS(from, 47, 25))
+#define SET_BLOCK_OAB(from, to) (SET_BITS(from, to, 47, 25))
+// FEAT_BBM is implemented -> Block[16] = nT (See Block translation entry)
+#define GET_BLOCK_NT(from)      (GET_BITS(from, 16, 16))
+#define SET_BLOCK_NT(from, to)  (SET_BITS(from, to, 16, 16))
+// FEAT_LPA is not implemented -> Block[15:12] is RES0
+
+// FEAT_XS is not implemented -> [11] is RES0
+
+// Access flag (AF)
+#define GET_AF(from)     (GET_BITS(from, 10, 10))
+#define SET_AF(from, to) (SET_BITS(from, to, 10, 10))
+
+// TCR_ELx.DS is 0 & jerry will use a 16KB translation granule -> [9:8] are Shareability
+#define GET_SHAREABILITY(from)     (GET_BITS(from, 9, 8))
+#define SET_SHAREABILITY(from, to) (SET_BITS(from, to, 9, 8))
+
+// Stage 2 direct permissions are used -> [7:6] are S2AP
+#define GET_S2AP(from)     (GET_BITS(from, 7, 6))
+#define SET_S2AP(from, to) (SET_BITS(from, to, 7, 6))
+
+/*
+ * • [5] is RES0 if HCR_EL2.FWB is set to 1
+ * • [5] is MemAttr[3] if HCR_EL2.FWB is set to 0
+ * • (See "Stage 2 memory type and Cacheability attributes when FWB is disabled/enabled")
+*/
+#define GET_MEMATTR(from)     (GET_BITS(from, 5, 2))
+#define SET_MEMATTR(from, to) (SET_BITS(from, to, 5, 2))
 
 /*
  * Descriptor Type = 0 -> Block descriptor, for lookup levels less than lookup level 3.
@@ -237,92 +347,8 @@
 #define GET_DESCRIPTOR_TYPE(from)     (GET_BITS(from, 1, 1))
 #define SET_DESCRIPTOR_TYPE(from, to) (SET_BITS(from, to, 1, 1))
 
-/*
- * jerry will have FWB=0; Effective value of HCR_EL2.FWB is 0 -> 
- * • stage 1 and stage 2 memory type and Cacheability attributes are combined
- * • [5:2] are MemAttr
-*/
-#define GET_MEMATTR(from)     (GET_BITS(from, 5, 2))
-#define SET_MEMATTR(from, to) (SET_BITS(from, to, 5, 2))
-
-/*
- * jerry uses direct permissions; Stage 2 Indirect permissions are disabled ->
- * • [7:6] are S2AP
-*/
-#define GET_S2AP(from)     (GET_BITS(from, 7, 6))
-#define SET_S2AP(from, to) (SET_BITS(from, to, 7, 6))
-
-// TCR_ELx.DS is 0; jerry will use a 16KB translation granule -> [9:8] are Shareability
-#define GET_SHAREABILITY(from)     (GET_BITS(from, 9, 8))
-#define SET_SHAREABILITY(from, to) (SET_BITS(from, to, 9, 8))
-
-// Access flag (AF)
-#define GET_AF(from)     (GET_BITS(from, 10, 10))
-#define SET_AF(from, to) (SET_BITS(from, to, 10, 10))
-
-// FEAT_XS is not implemented -> [11] is RES0
-
-/*
- * jerry will use 16KB granule; 
- * Page descriptor & The 16KB translation granule is used -> [47:14] is OAB ([13:12] are RES0)
-*/
-#define GET_PAGE_OAB(from)     (GET_BITS(from, 47, 14))
-#define SET_PAGE_OAB(from, to) (GET_BITS(from, to, 47, 14))
-
-// FEAT_LPA, FEAT_BBM are not implemented & L2 Block descriptor -> [16:12] is RES0
-
-/*
- * jerry will use 16KB granule; 
- * L2 Block descriptor & The 16KB translation granule is used -> [47:25] is OAB ([24:17] are RES0)
-*/
-#define GET_BLOCK_OAB(from)     (GET_BITS(from, 47, 25))
-#define SET_BLOCK_OAB(from, to) (SET_BITS(from, to, 47, 25))
-
-// FEAT_LPA2 is not implemented -> TCR_ELx.DS is 0 -> [49:48] are RES0
-
-// FEAT_S1PIE is not implemented -> Stage 1 Indirect permissions not enabled -> [51] is the Dirty bit modifier (DBM)
-#define GET_DBM(from)     (GET_BITS(from, 51, 51))
-#define SET_DBM(from, to) (SET_BITS(from, to, 51, 51))
-
-
-#define GET_CONTIGUOUS(from)     (GET_BITS(from, 52, 52))
-#define SET_CONTIGUOUS(from, to) (SET_BITS(from, to, 52, 52))
-
-// FEAT_XNX is not implemented -> [53] is RES0
-
-// FEAT_XNX is not implemented -> [54] is Execute-never (XN)
-#define GET_XN(from)     (GET_BITS(from, 54, 54))
-#define SET_XN(from, to) (SET_BITS(from, to, 54, 54))
-
-/*
- * jerry will not use Realm state;
- * Security state other than Realm state -> [55] is IGNORED
-*/
-
-// [57:56] are reserved for software use
-
-/*
- * jerry will set VTCR_EL2.AssuredOnly to 0;
- * VTCR_EL2.AssuredOnly is 0 -> [58] is reserved for software use
-*/
-
-/*
- * FEAT_HPDS2: Translation Table Page-Based is implemented ->
- *  • [62:60] is PBHA[3:1] if PBHA bit is enabled 
- *    by the corresponding TCR_ELx.HWUnn control bit.
- *  • [62:60] is reserved for use by a System MMU if PBHA bit is NOT enabled 
- *    by the corresponding TCR_ELx.HWUnn control bit.
- * 
- *  • [59] is PBHA[0] if PBHA bit is enabled by the corresponding TCR_ELx.HWUnn control bit.
- * 
- *  • (See "Page Based Hardware attributes.")
-*/
-#define GET_PBHA(from)     (GET_BITS(from, 62, 59))
-#define SET_PBHA(from, to) (SET_BITS(from, to, 62, 59))
-
-/*
- * jerry will not use Realm state;
- * Non-secure OR Secure state -> [63] is RES0
-*/
+// If value is 0, the descriptor is invalid
+#define GET_VALID_BIT(from)     (GET_BITS(from, 0, 0))
+#define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))
 
 /**************** END STAGE 2 PAGE/BLOCK DESCRIPTOR DEFS ****************/

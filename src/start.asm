@@ -14,6 +14,8 @@ _start:
   
   mrs x6, ID_AA64MMFR3_EL1
 
+  mrs x7, ID_AA64MMFR4_EL1
+
   // Set the stack pointer to a specific memory address.
   // QEMU will have RAM start at 0x40080000, and the DTB is 
   // automatically loaded at the start of RAM so we will place 
