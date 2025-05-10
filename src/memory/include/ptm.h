@@ -108,6 +108,25 @@
   ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
 
 /**************** STAGE 1 TABLE DESCRIPTOR DEFS ****************/
+typedef struct __attribute__((packed)) {
+  u8  validBit        :  1;
+  u8  tableDescriptor :  1;
+  u8  ignored_7_2     :  6;
+  u8  ignored_9_8     :  2;
+  u8  ignored_10      :  1;
+  u8  ignored_11      :  1;
+  u8  res0_13_12      :  2;
+  u64 nlta            : 34;
+  u8  res0_49_48      :  2;
+  u8  res0_50         :  1;
+  u8  ignored_51      :  1;
+  u8  ignored_52      :  1;
+  u8  ignored_58_53   :  6;
+  u8  pxnTable        :  1;
+  u8  uxnTable        :  1;
+  u8  apTable         :  2;
+  u8  res0_63         :  1;
+} tableDescriptorS1;
 
 // jerry will not use Secure state -> [63] is RES0
 
@@ -145,13 +164,11 @@
 
 // [11] is IGNORED
 
-/*
- * Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
-*/
+// Hardware managed Table descriptor Access flag is not enabled -> [10] is IGNORED
 
 // TCR_ELx.DS is 0 -> [9:8] is IGNORED
 
-// [7:2] inherits ⬇️
+// [7:2] are IGNORED
 
 // [1] inherits ⬇️
 
@@ -160,6 +177,21 @@
 /**************** END STAGE 1 TABLE DESCRIPTOR DEFS ****************/
 
 /**************** STAGE 2 TABLE DESCRIPTOR DEFS ****************/
+typedef struct __attribute__((packed)) {
+  u8  validBit           :  1;
+  u8  tableDescriptor    :  1;
+  u8  ignored_7_2        :  6;
+  u8  ignored_9_8        :  2;
+  u8  ignored_10         :  1;
+  u8  ignored_11         :  1;
+  u8  res0_13_12         :  2;
+  u64 nlta               : 34;
+  u8  res0_49_48         :  2;
+  u8  res0_50            :  1;
+  u8  ignored_58_51      :  8;
+  u8  res0_ignored_62_59 :  4;
+  u8  res0_63            :  1;
+} tableDescriptorS2;
 
 // [63] is RES0
 
@@ -167,13 +199,12 @@
 
 // [58:51] is IGNORED
 
-// [50] is RESO0
+// [50] is RES0
 
 // VTCR_EL2=0 -> [49:48] is RES0
 
-/*
- * 16KB translation granule is used -> [47:14] is NLTA, [13:12] are RES0
-*/
+
+// 16KB translation granule is used -> [47:14] is Next-level Table Address (NLTA), [13:12] are RES0
 #define GET_NLTA(from)     (GET_BITS(from, 47, 14))
 #define SET_NLTA(from, to) (SET_BITS(from, to, 47, 14))
 
@@ -198,6 +229,52 @@
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
 */
+typedef struct __attribute__((packed)) {
+  u8  validBit       :  1;
+  u8  descriptorType :  1;
+  u8  attrIndx       :  3;
+  u8  res0_5         :  1;
+  u8  ap             :  2;
+  u8  shareability   :  2;
+  u8  af             :  1;
+  u8  nG             :  1;
+  u8  res0_13_12     :  2;
+  u64 oab            : 33;
+  u8  res0_49_48     :  2;
+  u8  gp             :  1;
+  u8  dbm            :  1;
+  u8  contiguous     :  1;
+  u8  pxn            :  1;
+  u8  uxn            :  1;
+  u8  ignored_55     :  1;
+  u8  resSwUse_58_69 :  3;
+  u8  pbha           :  4;
+  u8  ignored_63     :  1;
+} pageDescriptorS1;
+typedef struct __attribute__((packed)) {
+  u8  validBit       :  1;
+  u8  descriptorType :  1;
+  u8  attrIndx       :  3;
+  u8  res0_5         :  1;
+  u8  ap             :  2;
+  u8  shareability   :  2;
+  u8  af             :  1;
+  u8  nG             :  1;
+  u8  res0_15_12     :  4;
+  u8  nT             :  1;
+  u8  res0_24_17     :  8;
+  u64 oab            : 23;
+  u8  res0_49_48     :  2;
+  u8  gp             :  1;
+  u8  dbm            :  1;
+  u8  contiguous     :  1;
+  u8  pxn            :  1;
+  u8  uxn            :  1;
+  u8  ignored_55     :  1;
+  u8  resSwUse_58_56 :  3;
+  u8  pbha           :  4;
+  u8  ignored_63     :  1;
+} blockDescriptorS1;
 
 // jerry will not use Realms -> [63] is IGNORED
 
@@ -262,6 +339,50 @@
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
 */
+typedef struct __attribute__((packed)) {
+  u8  validBit       :  1;
+  u8  descriptorType :  1;
+  u8  memAttr        :  3;
+  u8  s2ap           :  2;
+  u8  shareability   :  2;
+  u8  af             :  1;
+  u8  res0_11        :  1; 
+  u8  res0_13_12     :  2;
+  u64 oab            : 33;
+  u8  res0_49_48     :  2;
+  u8  res0_50        :  1;
+  u8  dbm            :  1;
+  u8  contiguous     :  1;
+  u8  xn             :  2;
+  u8  ignored_55     :  1;
+  u8  resSwUse_57_56 :  2;
+  u8  resSwUse_58    :  1; 
+  u8  pbha           :  4;
+  u8  ignored_63     :  1;
+} pageDescriptorS2;
+typedef struct __attribute__((packed)) {
+  u8  validBit       :  1;
+  u8  descriptorType :  1;
+  u8  memAttr        :  3;
+  u8  s2ap           :  2;
+  u8  shareability   :  2;
+  u8  af             :  1;
+  u8  res0_11        :  1;
+  u8  res0_15_12     :  4;
+  u8  nT             :  1;
+  u8  res0_24_17     :  8;
+  u64 oab            : 23;
+  u8  res0_49_48     :  2;
+  u8  res0_50        :  1;
+  u8  dbm            :  1;
+  u8  contiguous     :  1;
+  u8  xn             :  2;
+  u8  ignored_55     :  1;
+  u8  resSwUse_57_56 :  2;
+  u8  resSwUse_58    :  1; 
+  u8  pbha           :  4;
+  u8  ignored_63     :  1;
+} blockDescriptorS2;
 
 // jerry will not use Realms; Non-secure OR Secure state -> [63] is RES0
 
