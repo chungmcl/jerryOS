@@ -13,3 +13,7 @@ ln -s /Users/chungmcl/Projects/llvm-project/build/bin/ld.lld /usr/local/bin/ld
 # This guy prints out ALL registers, including system ones 
 # and ones outside of the current EL context (reading TCR_EL1 when the system is in EL2 for instance)
 (lldb) register read -a
+
+# For verifying the accuracy of the format of structs/unions/bitfields, you pass the
+-Xclang -fdump-record-layouts
+# flags into clang to get it to show exactly how it compiles structs/unions/bitfields

@@ -23,6 +23,7 @@ all:
 		$(SRC_DIR)/start.asm \
 		$(SRC_DIR)/main.c \
 		$(SRC_DIR)/jerryLibc/string.c \
+		$(SRC_DIR)/memory/kevin.c \
 		$(SRC_DIR)/devices/libfdtLite/fdt.c $(SRC_DIR)/devices/libfdtLite/fdt_ro.c \
 		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
 		--target=aarch64-unknown-$(NAME)-elf \

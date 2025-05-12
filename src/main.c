@@ -1,5 +1,6 @@
 #include "main.h"
 #include "devicesSetup.h"
+#include "kevin.h"
 
 s32 main() {
   // note that the device tree is in big endian while this CPU is lil endian
@@ -12,6 +13,10 @@ s32 main() {
   );
 
   if (!setupDevices(deviceTreeAddress)) {
+    // panic
+  }
+
+  if (!setupPTM()) {
     // panic
   }
 

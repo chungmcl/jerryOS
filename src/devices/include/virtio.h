@@ -6,7 +6,7 @@
 
 /* Defined from virtio-v1.0-cs04 spec */
 
-typedef volatile struct __attribute__((packed)) {
+typedef volatile struct __attribute__((packed, aligned(4))) {
 	u32 MagicValue;
 	u32 Version;
 	u32 DeviceID;

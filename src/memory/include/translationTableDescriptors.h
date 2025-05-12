@@ -108,24 +108,27 @@
   ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
 
 /**************** STAGE 1 TABLE DESCRIPTOR DEFS ****************/
-typedef struct __attribute__((packed)) {
-  u8  validBit        :  1;
-  u8  tableDescriptor :  1;
-  u8  ignored_7_2     :  6;
-  u8  ignored_9_8     :  2;
-  u8  ignored_10      :  1;
-  u8  ignored_11      :  1;
-  u8  res0_13_12      :  2;
-  u64 nlta            : 34;
-  u8  res0_49_48      :  2;
-  u8  res0_50         :  1;
-  u8  ignored_51      :  1;
-  u8  ignored_52      :  1;
-  u8  ignored_58_53   :  6;
-  u8  pxnTable        :  1;
-  u8  uxnTable        :  1;
-  u8  apTable         :  2;
-  u8  res0_63         :  1;
+typedef union {
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit        :  1;
+    u8  tableDescriptor :  1;
+    u8  ignored_7_2     :  6;
+    u8  ignored_9_8     :  2;
+    u8  ignored_10      :  1;
+    u8  ignored_11      :  1;
+    u8  res0_13_12      :  2;
+    u64 nlta            : 34;
+    u8  res0_49_48      :  2;
+    u8  res0_50         :  1;
+    u8  ignored_51      :  1;
+    u8  ignored_52      :  1;
+    u8  ignored_58_53   :  6;
+    u8  pxnTable        :  1;
+    u8  uxnTable        :  1;
+    u8  apTable         :  2;
+    u8  res0_63         :  1;
+  };
 } tableDescriptorS1;
 
 // jerry will not use Secure state -> [63] is RES0
@@ -177,20 +180,23 @@ typedef struct __attribute__((packed)) {
 /**************** END STAGE 1 TABLE DESCRIPTOR DEFS ****************/
 
 /**************** STAGE 2 TABLE DESCRIPTOR DEFS ****************/
-typedef struct __attribute__((packed)) {
-  u8  validBit           :  1;
-  u8  tableDescriptor    :  1;
-  u8  ignored_7_2        :  6;
-  u8  ignored_9_8        :  2;
-  u8  ignored_10         :  1;
-  u8  ignored_11         :  1;
-  u8  res0_13_12         :  2;
-  u64 nlta               : 34;
-  u8  res0_49_48         :  2;
-  u8  res0_50            :  1;
-  u8  ignored_58_51      :  8;
-  u8  res0_ignored_62_59 :  4;
-  u8  res0_63            :  1;
+typedef union {
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit           :  1;
+    u8  tableDescriptor    :  1;
+    u8  ignored_7_2        :  6;
+    u8  ignored_9_8        :  2;
+    u8  ignored_10         :  1;
+    u8  ignored_11         :  1;
+    u8  res0_13_12         :  2;
+    u64 nlta               : 34;
+    u8  res0_49_48         :  2;
+    u8  res0_50            :  1;
+    u8  ignored_58_51      :  8;
+    u8  res0_ignored_62_59 :  4;
+    u8  res0_63            :  1;
+  };
 } tableDescriptorS2;
 
 // [63] is RES0
@@ -229,51 +235,58 @@ typedef struct __attribute__((packed)) {
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
 */
-typedef struct __attribute__((packed)) {
-  u8  validBit       :  1;
-  u8  descriptorType :  1;
-  u8  attrIndx       :  3;
-  u8  res0_5         :  1;
-  u8  ap             :  2;
-  u8  shareability   :  2;
-  u8  af             :  1;
-  u8  nG             :  1;
-  u8  res0_13_12     :  2;
-  u64 oab            : 33;
-  u8  res0_49_48     :  2;
-  u8  gp             :  1;
-  u8  dbm            :  1;
-  u8  contiguous     :  1;
-  u8  pxn            :  1;
-  u8  uxn            :  1;
-  u8  ignored_55     :  1;
-  u8  resSwUse_58_69 :  3;
-  u8  pbha           :  4;
-  u8  ignored_63     :  1;
+
+typedef union { 
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit       :  1;
+    u8  descriptorType :  1;
+    u8  attrIndx       :  3;
+    u8  res0_5         :  1;
+    u8  ap             :  2;
+    u8  shareability   :  2;
+    u8  af             :  1;
+    u8  nG             :  1;
+    u8  res0_13_12     :  2;
+    u64 oab            : 34;
+    u8  res0_49_48     :  2;
+    u8  gp             :  1;
+    u8  dbm            :  1;
+    u8  contiguous     :  1;
+    u8  pxn            :  1;
+    u8  uxn            :  1;
+    u8  ignored_55     :  1;
+    u8  resSwUse_58_69 :  3;
+    u8  pbha           :  4;
+    u8  ignored_63     :  1;
+  };
 } pageDescriptorS1;
-typedef struct __attribute__((packed)) {
-  u8  validBit       :  1;
-  u8  descriptorType :  1;
-  u8  attrIndx       :  3;
-  u8  res0_5         :  1;
-  u8  ap             :  2;
-  u8  shareability   :  2;
-  u8  af             :  1;
-  u8  nG             :  1;
-  u8  res0_15_12     :  4;
-  u8  nT             :  1;
-  u8  res0_24_17     :  8;
-  u64 oab            : 23;
-  u8  res0_49_48     :  2;
-  u8  gp             :  1;
-  u8  dbm            :  1;
-  u8  contiguous     :  1;
-  u8  pxn            :  1;
-  u8  uxn            :  1;
-  u8  ignored_55     :  1;
-  u8  resSwUse_58_56 :  3;
-  u8  pbha           :  4;
-  u8  ignored_63     :  1;
+typedef union {
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit       :  1;
+    u8  descriptorType :  1;
+    u8  attrIndx       :  3;
+    u8  res0_5         :  1;
+    u8  ap             :  2;
+    u8  shareability   :  2;
+    u8  af             :  1;
+    u8  nG             :  1;
+    u8  res0_15_12     :  4;
+    u8  nT             :  1;
+    u8  res0_24_17     :  8;
+    u64 oab            : 23;
+    u8  res0_49_48     :  2;
+    u8  gp             :  1;
+    u8  dbm            :  1;
+    u8  contiguous     :  1;
+    u8  pxn            :  1;
+    u8  uxn            :  1;
+    u8  ignored_55     :  1;
+    u8  resSwUse_58_56 :  3;
+    u8  pbha           :  4;
+    u8  ignored_63     :  1;
+  };
 } blockDescriptorS1;
 
 // jerry will not use Realms -> [63] is IGNORED
@@ -339,49 +352,55 @@ typedef struct __attribute__((packed)) {
  * supplied to the translation stage to produce the final OA 
  * supplied by the translation stage.
 */
-typedef struct __attribute__((packed)) {
-  u8  validBit       :  1;
-  u8  descriptorType :  1;
-  u8  memAttr        :  3;
-  u8  s2ap           :  2;
-  u8  shareability   :  2;
-  u8  af             :  1;
-  u8  res0_11        :  1; 
-  u8  res0_13_12     :  2;
-  u64 oab            : 33;
-  u8  res0_49_48     :  2;
-  u8  res0_50        :  1;
-  u8  dbm            :  1;
-  u8  contiguous     :  1;
-  u8  xn             :  2;
-  u8  ignored_55     :  1;
-  u8  resSwUse_57_56 :  2;
-  u8  resSwUse_58    :  1; 
-  u8  pbha           :  4;
-  u8  ignored_63     :  1;
+typedef union {
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit       :  1;
+    u8  descriptorType :  1;
+    u8  memAttr        :  4;
+    u8  s2ap           :  2;
+    u8  shareability   :  2;
+    u8  af             :  1;
+    u8  res0_11        :  1; 
+    u8  res0_13_12     :  2;
+    u64 oab            : 34;
+    u8  res0_49_48     :  2;
+    u8  res0_50        :  1;
+    u8  dbm            :  1;
+    u8  contiguous     :  1;
+    u8  xn             :  2;
+    u8  ignored_55     :  1;
+    u8  resSwUse_57_56 :  2;
+    u8  resSwUse_58    :  1; 
+    u8  pbha           :  4;
+    u8  ignored_63     :  1;
+  };
 } pageDescriptorS2;
-typedef struct __attribute__((packed)) {
-  u8  validBit       :  1;
-  u8  descriptorType :  1;
-  u8  memAttr        :  3;
-  u8  s2ap           :  2;
-  u8  shareability   :  2;
-  u8  af             :  1;
-  u8  res0_11        :  1;
-  u8  res0_15_12     :  4;
-  u8  nT             :  1;
-  u8  res0_24_17     :  8;
-  u64 oab            : 23;
-  u8  res0_49_48     :  2;
-  u8  res0_50        :  1;
-  u8  dbm            :  1;
-  u8  contiguous     :  1;
-  u8  xn             :  2;
-  u8  ignored_55     :  1;
-  u8  resSwUse_57_56 :  2;
-  u8  resSwUse_58    :  1; 
-  u8  pbha           :  4;
-  u8  ignored_63     :  1;
+typedef union {
+  u64 raw;
+  struct __attribute__((packed)) {
+    u8  validBit       :  1;
+    u8  descriptorType :  1;
+    u8  memAttr        :  4;
+    u8  s2ap           :  2;
+    u8  shareability   :  2;
+    u8  af             :  1;
+    u8  res0_11        :  1;
+    u8  res0_15_12     :  4;
+    u8  nT             :  1;
+    u8  res0_24_17     :  8;
+    u64 oab            : 23;
+    u8  res0_49_48     :  2;
+    u8  res0_50        :  1;
+    u8  dbm            :  1;
+    u8  contiguous     :  1;
+    u8  xn             :  2;
+    u8  ignored_55     :  1;
+    u8  resSwUse_57_56 :  2;
+    u8  resSwUse_58    :  1; 
+    u8  pbha           :  4;
+    u8  ignored_63     :  1;
+  };
 } blockDescriptorS2;
 
 // jerry will not use Realms; Non-secure OR Secure state -> [63] is RES0

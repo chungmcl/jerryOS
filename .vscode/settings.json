@@ -3,7 +3,8 @@
     "stdint.h": "c",
     "libfdt_internal.h": "c",
     "string.h": "c",
-    "libfdt.h": "c"
+    "libfdt.h": "c",
+    "jerrytypes.h": "c"
   },
   "python.analysis.extraPaths": [
       "/opt/homebrew/Cellar/llvm/19.1.7/libexec/python3.13/site-packages"
