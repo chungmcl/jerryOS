@@ -69,7 +69,7 @@
 */
 
 /*
- * Some important definitions/info from ARM docs:
+ * Some important definitions/info quoted directly from ARM docs:
  * • "Effective value: A register control field, meaning a field in a register that controls some aspect of the behavior, can be
  *    described as having an Effective value:
  *    • In some cases, the description of a control a specifies that when control a is active it causes a
@@ -96,6 +96,29 @@
  *    RES0 is not used in descriptions of instruction encodings. Within the architecture, there are some cases where a register bit or bitfield 
  *    can be RES0 in some defined architectural context, but can have different defined behavior in a different architectural context. For any RES0 
  *    bit or field, software must not rely on the bit or field reading as 0, and must use an SBZP policy to write to the bit or field."
+ * • "In the case of a 16kB granule, 
+ *     • The hardware can use a 4-level look up process.
+ *     • The 48-bit address has 11 address bits per level that is translated, that is 2048 entries each, with the final 14 bits selecting a byte 
+ *       within the 4kB coming directly from the original address.
+ *     • L0: 
+ *        The level 0 table contains only two entries. Bit [47] of the virtual address selects a descriptor from the two entry L0 table. 
+ *        Each of these table entries spans a 128TB range and points to an L1 table.
+ *     • L1: 
+ *        Within that 2048 entry L1 table, bits [46:36] are used as an index to select an entry and each entry points to an L2 table. 
+ *        Bits [35:25] index into a 2048 entry L2 table and each entry points to a 32MB block or next table level.
+ *     • L2: 
+ *        At the final translation stage, bits [24:14] index into a 2048 entry L2 table and each entry points to a 16kB block.
+ *     • ┌───────────────────────┐┌───────────────────────┐┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐   
+ *       │      VA bit [47]      ││    VA bit [46:36]     ││    VA bits [35:25]     ││    VA bits [35:25]     ││     VA bits [13:0]     │   
+ *       └───────────────────────┘└───────────────────────┘└────────────────────────┘└────────────────────────┘└────────────────────────┘   
+ *       ┌───────────────────────┐┌───────────────────────┐┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐
+ *       │  Level 0 Table Index  ││  Level 1 Table Index  ││   Level 2 Table Index  ││   Level 3 Table Index  ││                        │
+ *       │ Each entry contains:  ││ Each entry contains:  ││ Each entry contains:   ││ Each entry contains:   ││                        │
+ *       │ • Pointer to L1 table ││ • Pointer to L2 table ││ • Pointer to L3 table  ││                        ││      Block offset      │
+ *       │ • (No block entry)    ││                       ││ • Base address of 32MB ││ • Base address of 16KB ││      and PA [13:0]     │
+ *       │                       ││                       ││   block (IPA)          ││   block (IPA)          ││                        │
+ *       └───────────────────────┘└───────────────────────┘└────────────────────────┘└────────────────────────┘└────────────────────────┘
+ *   "
 */
 
 #define N_BITS(n) \
