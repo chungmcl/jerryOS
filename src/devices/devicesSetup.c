@@ -1,7 +1,8 @@
 #include "devicesSetup.h"
 #include "virtio.h"
+#include "libfdt.h"
 
-bool setupDevices(const void* deviceTreeAddress) {
+bool setupDevices(const void* deviceTreeAddress, u64*const deviceTreeSize) {
   if (fdt_check_header(deviceTreeAddress) != 0) return false;
 
   s32 currNodeOffset = 0;
@@ -29,6 +30,8 @@ bool setupDevices(const void* deviceTreeAddress) {
     /* * */
 
   } while (currNodeOffset >= 0);
+
+  *deviceTreeSize = fdt_totalsize(deviceTreeAddress);
 
   return true;
 }

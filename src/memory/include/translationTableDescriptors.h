@@ -59,6 +59,8 @@
  *    FEAT_THE     ❌
  *      • -> Effective value of PnCH=0 & RES0
  *      • -> Effective value of VTCR_EL2.AssuredOnly=0 & RES0
+ *    FEAT_TTST    ✅
+ *      • -> The maximum value of the TCR_ELx.{T0SZ,T1SZ} and VTCR_EL2.T0SZ fields is 48 for 4KB and 16KB granules, and 47 for 64KB granules.
  *    FEAT_XS      ❌
  *    FEAT_XNX     ✅
  *      • -> Distinction between EL0 and EL1 execute-never control at stage 2 supported

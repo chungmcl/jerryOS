@@ -12,7 +12,8 @@ s32 main() {
     : // No clobbered registers
   );
 
-  if (!setupDevices(deviceTreeAddress)) {
+  u64 deviceTreeLen;
+  if (!setupDevices(deviceTreeAddress, &deviceTreeLen)) {
     // panic
   }
 
