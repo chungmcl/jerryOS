@@ -12,10 +12,12 @@ s32 main() {
     : // No clobbered registers
   );
 
-  u64 deviceTreeLen;
-  if (!setupDevices(deviceTreeAddress, &deviceTreeLen)) {
+  deviceSetupInfo deviceInfo;
+  if (!setupDevices(deviceTreeAddress, &deviceInfo)) {
     // panic
   }
+
+  u64 memSizeGB = deviceInfo.ramLenBytes >> 30;
 
   if (!setupPTM()) {
     // panic

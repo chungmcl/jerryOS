@@ -4,7 +4,7 @@
 BUILD_DIR="build"
 DISK_PATH="${BUILD_DIR}/disk.img"
 LLDB_PORT=$(sed -nE "s/.*gdb-remote localhost:([0-9]+)/\1/p" ./lldb-startup.txt)
-MEMORY_GB=$(sed -nE "s/.*MEMORY_SIZE_GB[[:space:]]+([0-9]+)/\1/p" ./src/include/meta.h)
+MEMORY_GB=4
 
 if [ -z "$LLDB_PORT" ]; then
   echo "Error: A valid port in \"gdb-remote localhost:port\" not found in ./lldb-startup.txt!"
