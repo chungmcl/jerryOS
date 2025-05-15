@@ -6,4 +6,6 @@ breakpoint set --name main
 
 command script import ./scripts_lldb/dtb_to_dts.py
 
+settings set stop-disassembly-display always
+
 gdb-remote localhost:4321

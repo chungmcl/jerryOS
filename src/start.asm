@@ -16,6 +16,11 @@ _start:
 
   mrs x7, ID_AA64MMFR4_EL1
 
+  // TODO(chungmcl): Set the register pointer (VBAR_EL1)
+  // to an Exception Vector Table
+  // mov x8, {Exception Vector Table Addy}
+  // msr VBAR_EL1, x8
+
   // Set the stack pointer to a specific memory address.
   // QEMU will have RAM start at 0x40080000, and the DTB is 
   // automatically loaded at the start of RAM so we will place 
