@@ -11,11 +11,6 @@ if [ -z "$LLDB_PORT" ]; then
   exit 1
 fi
 
-if [ -z "$MEMORY_GB" ]; then
-  echo "Error: A valid value for MEMORY_SIZE_GB not found in ./src/include/meta.h!"
-  exit 1
-fi
-
 # Note: use "-machine virt,virtualization=on" to enable EL2
 # https://qemu-project.gitlab.io/qemu/system/arm/virt.html
 make \
