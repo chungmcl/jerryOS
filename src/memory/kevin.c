@@ -16,14 +16,16 @@ static u32 hwPageFreeListLen;
 
 bool setupPTM(const hardwareInfo*const hwInfo) {
   ramAddy = hwInfo->ramStartAddr;
-  numPhysPages = hwInfo->ramLen / PHYSMEM_PAGE_LEN;
+  numPhysPages = hwInfo->ramLen / MEM_PAGE_LEN;
   hwPageFreeListLen = numPhysPages / 8;
 
-  // device tree starts at beginning of memory; the HW pages it takes up should be reserved
-  u64 numPreReservedPages = 
-    (((ramAddy + hwInfo->deviceTreeLen) / PHYSMEM_PAGE_LEN) + 1) +
-    ((hwPageFreeListLen / PHYSMEM_PAGE_LEN) + 1)
-  ;
+  // device tree starts at beginning of memory; the HW pages it takes up should be reserved preemptively
+  u32 numDeviceTreePages = ((ramAddy + hwInfo->deviceTreeLen) / MEM_PAGE_LEN) + 1;
+  // also preemptively reserve pages for the hwPageFreeList
+  u32 hwPageFreeListPages = (hwPageFreeListLen / MEM_PAGE_LEN) + 1;
+  // place the hwPageFreeList in the next free page after the device tree
+  hwPageFreeList = hwInfo->ramStartAddr + ((MEM_PAGE_LEN * numDeviceTreePages) + 1);
+  
 
   
   
