@@ -2,16 +2,16 @@
 #include "virtio.h"
 #include "libfdt.h"
 
-bool setupDevices(const void* deviceTreeAddress, deviceSetupInfo*const out) {
+bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out) {
   if (fdt_check_header(deviceTreeAddress) != 0) return false;
 
   s32 currNodeOffset = 0;
   s32 depth = 0;
   const void* currNode = (const void*)deviceTreeAddress;
 
-  u64 deviceTreeLenBytes = fdt_totalsize(deviceTreeAddress);
-  uintptr ramStartPhysAddr;
-  u64 ramLenBytes;
+  u64 deviceTreeLen = fdt_totalsize(deviceTreeAddress);
+  uintptr ramStartAddr;
+  u64 ramLen;
 
   do {
     currNodeOffset = fdt_next_node(currNode, currNodeOffset, &depth);
@@ -42,8 +42,8 @@ bool setupDevices(const void* deviceTreeAddress, deviceSetupInfo*const out) {
         fdt32_t reg1 = fdt32_to_cpu(regPtr[1]);
         fdt32_t reg2 = fdt32_to_cpu(regPtr[2]);
         fdt32_t reg3 = fdt32_to_cpu(regPtr[3]);
-        ramStartPhysAddr = (((u64)reg0) << 32) | reg1;
-        ramLenBytes =      (((u64)reg2) << 32) | reg3;
+        ramStartAddr = (((u64)reg0) << 32) | reg1;
+        ramLen =      (((u64)reg2) << 32) | reg3;
       } else if (strStartsWith(currNodeName, "virtio_mmio")) {
         u64 output;
         if (setupVirtIODevice(deviceTreeAddress, currNodeOffset, &output) == -1) {
@@ -55,9 +55,9 @@ bool setupDevices(const void* deviceTreeAddress, deviceSetupInfo*const out) {
 
   } while (currNodeOffset >= 0);
 
-  out->deviceTreeLenBytes = deviceTreeLenBytes;
-  out->ramStartPhysAddr = ramStartPhysAddr;
-  out->ramLenBytes = ramLenBytes;
+  out->deviceTreeLen = deviceTreeLen;
+  out->ramStartAddr = ramStartAddr;
+  out->ramLen = ramLen;
 
   return true;
 }

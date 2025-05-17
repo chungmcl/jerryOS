@@ -12,14 +12,15 @@ s32 main() {
     : // No clobbered registers
   );
 
-  deviceSetupInfo deviceInfo;
-  if (!setupDevices(deviceTreeAddress, &deviceInfo)) {
+  hardwareInfo hwInfo;
+  if (!setupDevices(deviceTreeAddress, &hwInfo)) {
     // panic
   }
 
-  u64 memSizeGB = deviceInfo.ramLenBytes >> 30;
+  u64 memSizeGB = hwInfo.ramLen >> 30;
 
-  if (!setupPTM()) {
+  if (!setupPTM(&hwInfo)
+  ) {
     // panic
   }
 

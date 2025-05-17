@@ -2,4 +2,6 @@
 
 #include "jerryTypes.h"
 
-bool setupPTM();
+#define PHYSMEM_PAGE_LEN (0b1 << 14) // 16KB
+
+bool setupPTM(const hardwareInfo*const hwInfo);

@@ -2,7 +2,32 @@
 
 #include "kevin.h"
 
-bool setupPTM() {
+static uintptr ramAddy;
+
+u32 numPhysPages;
+
+/*
+* The HW page free list will be an array of u8s,
+* where each bit represents free state of a single HW page
+*/
+static u8* hwPageFreeList;
+// NOTE: hwPageFreeListLen == # of bytes; != # of bits
+static u32 hwPageFreeListLen;
+
+bool setupPTM(const hardwareInfo*const hwInfo) {
+  ramAddy = hwInfo->ramStartAddr;
+  numPhysPages = hwInfo->ramLen / PHYSMEM_PAGE_LEN;
+  hwPageFreeListLen = numPhysPages / 8;
+
+  // device tree starts at beginning of memory; the HW pages it takes up should be reserved
+  u64 numPreReservedPages = 
+    (((ramAddy + hwInfo->deviceTreeLen) / PHYSMEM_PAGE_LEN) + 1) +
+    ((hwPageFreeListLen / PHYSMEM_PAGE_LEN) + 1)
+  ;
+
+  
+  
+
   // Set the Intermediate Physical Address Size to 48 bits, 256TB
   // TCR_EL1.IPS = 0b101
 

@@ -1,3 +1,6 @@
+#ifndef JERRY_TYPES_H
+#define JERRY_TYPES_H
+
 // Whoever came up with the "_t" convention hurts me
 typedef unsigned char      u8;
 typedef unsigned short     u16;
@@ -47,3 +50,11 @@ do {                                    \
 #define isb(type) asm volatile("isb " type ::: "memory")
 
 #define arrayLen(x) (sizeof(x) / sizeof(x[0]))
+
+typedef struct {
+  u64 deviceTreeLen;
+  uintptr ramStartAddr;
+  u64 ramLen;
+} hardwareInfo;
+
+#endif /* JERRY_TYPES_H */
