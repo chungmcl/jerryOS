@@ -16,6 +16,26 @@ u8* hwPageFreeList;
 u32 hwPageFreeListLen;
 
 bool markPageRangeUsed(u32 upperIdx, u32 lowerIdx) {
+  if (upperIdx < lowerIdx) return false;
+  u32 upperByteIdx = upperIdx / 8;
+  u32 lowerByteIdx = lowerIdx / 8;
+
+  if (upperByteIdx == lowerByteIdx) {
+    u8* byte = hwPageFreeList + lowerByteIdx;
+    *byte = *byte | ((0b1 << (upperIdx - lowerIdx + 1)) - 1) << (lowerIdx % 8);
+    return true;
+  }
+
+  if ((upperIdx + 1) % 8 != 0) {
+    u8* byte = hwPageFreeList + upperByteIdx;
+    *byte = *byte | ((0b1 << ((upperIdx % 8) + 1)) - 1);
+    upperByteIdx -= 1;
+  } if ((lowerIdx % 8) != 0) {
+    u8* byte = hwPageFreeList + lowerByteIdx;
+    *byte = *byte | ~((0b1 << ((lowerIdx % 8))) - 1);
+    lowerByteIdx += 1;
+  }
+  memset(hwPageFreeList + lowerByteIdx, 0xFF, upperByteIdx - lowerByteIdx + 1);
   return true;
 }
 
