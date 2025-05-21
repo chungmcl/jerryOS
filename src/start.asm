@@ -28,10 +28,13 @@ _start:
   ldr x1, =0x4008F000
   mov sp, x1
 
-  // According to https://qemu-project.gitlab.io/qemu/system/arm/virt.html,
+  // For some reason, changing .text to 0x200000 and .bss to 0x4008F008
+  // using link.lds makes QEMU move the DTB to 0x0, despite the docs at
+  // https://qemu-project.gitlab.io/qemu/system/arm/virt.html stating
   // "For guests booting as “bare-metal” (any other kind of boot), 
   // the DTB is at the start of RAM (0x4000_0000)."
-  ldr x1, =0x40000000
+  // Therefore, we pass the DTB address to main() as 0x0 instead of 0x0
+  ldr x1, =0x0
 
   // Jump to main.c:main
   bl main

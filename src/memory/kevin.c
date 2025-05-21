@@ -1,8 +1,9 @@
 // Kevin the Page Table Manager
 
 #include "kevin.h"
+#include "string.h"
 
-static uintptr ramAddy;
+uintptr ramAddy;
 
 u32 numPhysPages;
 
@@ -10,25 +11,28 @@ u32 numPhysPages;
 * The HW page free list will be an array of u8s,
 * where each bit represents free state of a single HW page
 */
-static u8* hwPageFreeList;
+u8* hwPageFreeList;
 // NOTE: hwPageFreeListLen == # of bytes; != # of bits
-static u32 hwPageFreeListLen;
+u32 hwPageFreeListLen;
 
-bool setupPTM(const hardwareInfo*const hwInfo) {
+bool markPageRangeUsed(u32 upperIdx, u32 lowerIdx) {
+  return true;
+}
+
+bool markPageRangeFree(u32 upperIdx, u32 lowerIdx) {
+  return true;
+}
+
+bool setupPTM(const hardwareInfo* const hwInfo) {
   ramAddy = hwInfo->ramStartAddr;
   numPhysPages = hwInfo->ramLen / MEM_PAGE_LEN;
   hwPageFreeListLen = numPhysPages / 8;
 
-  // device tree starts at beginning of memory; the HW pages it takes up should be reserved preemptively
-  u32 numDeviceTreePages = ((ramAddy + hwInfo->deviceTreeLen) / MEM_PAGE_LEN) + 1;
   // also preemptively reserve pages for the hwPageFreeList
   u32 hwPageFreeListPages = (hwPageFreeListLen / MEM_PAGE_LEN) + 1;
-  // place the hwPageFreeList in the next free page after the device tree
-  hwPageFreeList = hwInfo->ramStartAddr + ((MEM_PAGE_LEN * numDeviceTreePages) + 1);
-  
-
-  
-  
+  // place the hwPageFreeList at the beginning of memory
+  hwPageFreeList = (u8*)(hwInfo->ramStartAddr);
+  markPageRangeUsed(hwPageFreeListPages, 0);
 
   // Set the Intermediate Physical Address Size to 48 bits, 256TB
   // TCR_EL1.IPS = 0b101

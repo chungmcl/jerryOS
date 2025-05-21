@@ -26,6 +26,7 @@ all:
 		$(SRC_DIR)/memory/kevin.c \
 		$(SRC_DIR)/devices/libfdtLite/fdt.c $(SRC_DIR)/devices/libfdtLite/fdt_ro.c \
 		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
+		-T $(SRC_DIR)/link.lds \
 		--target=aarch64-unknown-$(NAME)-elf \
 		-nostdlib -nostdinc -fno-builtin -static -v
 

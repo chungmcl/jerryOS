@@ -24,7 +24,7 @@ bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out) {
      * Handle varying types of devices detected in device tree here
      */ 
     {
-      if (strStartsWith(currNodeName, "memory@40000000")) {
+      if (strStartsWith(currNodeName, "memory@")) {
         s32 regLen;
         const fdt32_t* regPtr = fdt_getprop(
           deviceTreeAddress, 
@@ -43,7 +43,7 @@ bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out) {
         fdt32_t reg2 = fdt32_to_cpu(regPtr[2]);
         fdt32_t reg3 = fdt32_to_cpu(regPtr[3]);
         ramStartAddr = (((u64)reg0) << 32) | reg1;
-        ramLen =      (((u64)reg2) << 32) | reg3;
+        ramLen =       (((u64)reg2) << 32) | reg3;
       } else if (strStartsWith(currNodeName, "virtio_mmio")) {
         u64 output;
         if (setupVirtIODevice(deviceTreeAddress, currNodeOffset, &output) == -1) {

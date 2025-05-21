@@ -1,6 +1,6 @@
 Various useful commands:
 
-readelf -S build/jerryOS
+llvm-readelf -S build/jerryOS
 
 llvm-objdump -D build/jerryOS
 
@@ -17,3 +17,7 @@ ln -s /Users/chungmcl/Projects/llvm-project/build/bin/ld.lld /usr/local/bin/ld
 # For verifying the accuracy of the format of structs/unions/bitfields, you pass the
 -Xclang -fdump-record-layouts
 # flags into clang to get it to show exactly how it compiles structs/unions/bitfields
+
+# Use the /t format specifier in lldb like below to print in binary format
+p/t
+x/t
