@@ -5,15 +5,10 @@ _start:
   // Grab some system registers for funsies 🤪
   mrs x2, CurrentEL
   lsr x2, x2, #2  // Extract EL number according to formula (right shift 2)
-
   mrs x3, ID_AA64PFR0_EL1
-  
   mrs x4, ID_AA64MMFR1_EL1
-
   mrs x5, ID_AA64PFR1_EL1
-  
   mrs x6, ID_AA64MMFR3_EL1
-
   mrs x7, ID_AA64MMFR4_EL1
 
   // TODO(chungmcl): Set the register pointer (VBAR_EL1)
@@ -21,11 +16,20 @@ _start:
   // mov x8, {Exception Vector Table Addy}
   // msr VBAR_EL1, x8
 
-  // Set the stack pointer to a specific memory address.
-  // QEMU will have RAM start at 0x40080000, and the DTB is 
-  // automatically loaded at the start of RAM so we will place 
-  // the stack arbitrarily at 0xF000 bytes after the start of RAM.
-  ldr x1, =0x4008F000
+  // Set the stack pointer to a specific memory address in RAM.
+  // Why this particular address?
+  // • QEMU maps RAM to physical address 0x4000_0000.
+  // • jerryOS uses the Cortex-A710's 16KB memory page option.
+  // • jerryOS uses the first 16KB page for the stack and the kernel's
+  //   global variables (the .bss section of the kernel ELF).
+  // • The first 16KB page in memory is structured such that:
+  //   [0x40004000:0x40002000] (i.e., the second half of the page) = .bss --
+  //   therefore, sp starts before 0x40002000 and grows backwards
+  //   towards the ROM address range, which is just the jerryOS .text and .rodata, 
+  //   to avoid overwriting .bss or any other important data.
+  // • On Cortex-A710, sp must be 16-byte aligned, so start 16 bytes before
+  //   the first byte of .bss: 0x40002000 - 0x10 = 0x40001FF0.
+  ldr x1, =0x40001FF0
   mov sp, x1
 
   // For some reason, changing .text to 0x200000 and .bss to 0x4008F008

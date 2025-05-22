@@ -15,32 +15,39 @@ u8* hwPageFreeList;
 // NOTE: hwPageFreeListLen == # of bytes; != # of bits
 u32 hwPageFreeListLen;
 
-bool markPageRangeUsed(u32 upperIdx, u32 lowerIdx) {
+bool markPageRange(u32 upperIdx, u32 lowerIdx, bool used) {
   if (upperIdx < lowerIdx) return false;
   u32 upperByteIdx = upperIdx / 8;
   u32 lowerByteIdx = lowerIdx / 8;
 
   if (upperByteIdx == lowerByteIdx) {
     u8* byte = hwPageFreeList + lowerByteIdx;
-    *byte = *byte | ((0b1 << (upperIdx - lowerIdx + 1)) - 1) << (lowerIdx % 8);
+    u8 mask = ((0b1 << (upperIdx - lowerIdx + 1)) - 1) << (lowerIdx % 8);
+    *byte = used ? (*byte | mask) : (*byte & ~mask);
     return true;
   }
 
   if ((upperIdx + 1) % 8 != 0) {
     u8* byte = hwPageFreeList + upperByteIdx;
-    *byte = *byte | ((0b1 << ((upperIdx % 8) + 1)) - 1);
+    u8 mask = (0b1 << ((upperIdx % 8) + 1)) - 1;
+    *byte = used ? (*byte | mask) : (*byte & ~mask);
     upperByteIdx -= 1;
   } if ((lowerIdx % 8) != 0) {
     u8* byte = hwPageFreeList + lowerByteIdx;
-    *byte = *byte | ~((0b1 << ((lowerIdx % 8))) - 1);
+    u8 mask = (0b1 << ((lowerIdx % 8))) - 1;
+    *byte = used ? (*byte | ~mask) : (*byte & mask);
     lowerByteIdx += 1;
   }
-  memset(hwPageFreeList + lowerByteIdx, 0xFF, upperByteIdx - lowerByteIdx + 1);
+  memset(hwPageFreeList + lowerByteIdx, used ? 0xFF : 0x00, upperByteIdx - lowerByteIdx + 1);
   return true;
 }
 
+bool markPageRangeUsed(u32 upperIdx, u32 lowerIdx) {
+  return markPageRange(upperIdx, lowerIdx, true);
+}
+
 bool markPageRangeFree(u32 upperIdx, u32 lowerIdx) {
-  return true;
+  return markPageRange(upperIdx, lowerIdx, false);
 }
 
 bool setupPTM(const hardwareInfo* const hwInfo) {
@@ -48,11 +55,16 @@ bool setupPTM(const hardwareInfo* const hwInfo) {
   numPhysPages = hwInfo->ramLen / MEM_PAGE_LEN;
   hwPageFreeListLen = numPhysPages / 8;
 
-  // also preemptively reserve pages for the hwPageFreeList
-  u32 hwPageFreeListPages = (hwPageFreeListLen / MEM_PAGE_LEN) + 1;
-  // place the hwPageFreeList at the beginning of memory
-  hwPageFreeList = (u8*)(hwInfo->ramStartAddr);
-  markPageRangeUsed(hwPageFreeListPages, 0);
+  // Preemptively reserve first page for stack and .bss
+  u32 numAlreadyUsedPages = 1;
+  // Preemptively reserve pages for the hwPageFreeList itself
+  numAlreadyUsedPages += (hwPageFreeListLen / MEM_PAGE_LEN);
+
+  // Place the hwPageFreeList starting from the second page in memory,
+  // after the stack and .bss
+  hwPageFreeList = (u8*)(ramAddy + MEM_PAGE_LEN);
+  // -1 cause markPageRangeUsed() takes page INDICES as parameters
+  markPageRangeUsed(numAlreadyUsedPages - 1, 0);
 
   // Set the Intermediate Physical Address Size to 48 bits, 256TB
   // TCR_EL1.IPS = 0b101
