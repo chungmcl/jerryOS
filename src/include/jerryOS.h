@@ -1,7 +1,8 @@
-#ifndef JERRY_TYPES_H
-#define JERRY_TYPES_H
+#ifndef JERRYOS_H
+#define JERRYOS_H
 
 // Whoever came up with the "_t" convention hurts me
+
 typedef unsigned char      u8;
 typedef unsigned short     u16;
 typedef unsigned int       u32;
@@ -57,4 +58,6 @@ typedef struct {
   u64 ramLen;
 } hardwareInfo;
 
-#endif /* JERRY_TYPES_H */
+#define MEM_PAGE_LEN (0b1 << 14) // 16KB
+
+#endif /* JERRYOS_H */

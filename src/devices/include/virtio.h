@@ -1,7 +1,7 @@
 #ifndef VIRTIO_H
 #define VIRTIO_H
 
-#include "jerryTypes.h"
+#include "jerryOS.h"
 #include "libfdt.h"
 
 /* Defined from virtio-v1.0-cs04 spec */

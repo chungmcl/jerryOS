@@ -1,4 +1,4 @@
-#include "jerryTypes.h"
+#include "jerryOS.h"
 
 /*
  * Notes for how to interpret what bits represent in TTEs via the A-Profile Reference:

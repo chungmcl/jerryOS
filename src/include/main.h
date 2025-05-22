@@ -1,1 +1,1 @@
-#include "jerryTypes.h"
+#include "jerryOS.h"

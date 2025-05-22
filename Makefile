@@ -24,6 +24,7 @@ all:
 		$(SRC_DIR)/main.c \
 		$(SRC_DIR)/jerryLibc/string.c \
 		$(SRC_DIR)/memory/kevin.c \
+		$(SRC_DIR)/memory/ppm.c \
 		$(SRC_DIR)/devices/libfdtLite/fdt.c $(SRC_DIR)/devices/libfdtLite/fdt_ro.c \
 		$(SRC_DIR)/devices/devicesSetup.c $(SRC_DIR)/devices/virtio.c \
 		-T $(SRC_DIR)/link.lds \

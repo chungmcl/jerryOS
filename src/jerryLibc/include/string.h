@@ -1,7 +1,7 @@
 #ifndef JERRYLIBC_STRING_H
 #define JERRYLIBC_STRING_H
 
-#include "jerryTypes.h"
+#include "jerryOS.h"
 
 size strlen(const char* s);
 char* strchr(const char* s, int c);

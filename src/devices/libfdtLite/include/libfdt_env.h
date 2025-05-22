@@ -7,7 +7,7 @@
  * Copyright 2012 Kim Phillips, Freescale Semiconductor.
  */
 
-#include "jerryTypes.h"
+#include "jerryOS.h"
 #include "string.h"
 
 #ifdef __CHECKER__
