@@ -16,6 +16,7 @@ typedef signed long long   s64;
 typedef unsigned long long uintptr;
 typedef unsigned long long size;
 
+#ifndef __cplusplus
 #define bool  _Bool
 #define true  1
 #define false 0
@@ -30,6 +31,7 @@ typedef unsigned long long size;
 #define UINT_MAX        0xffffffff      /* max value for an unsigned int */
 #define INT_MAX         2147483647      /* max value for an int */
 #define INT_MIN         (-2147483647-1) /* min value for an int */
+#endif
 
 #define READ32(_reg) (*(volatile u32 *)&(_reg))
 #define READ64(_reg) (*(volatile u64 *)&(_reg))
@@ -54,7 +56,7 @@ do {                                    \
 
 typedef struct {
   u64 deviceTreeLen;
-  uintptr ramStartAddr;
+  void* ramStartAddr;
   u64 ramLen;
 } hardwareInfo;
 

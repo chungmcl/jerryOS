@@ -56,7 +56,7 @@ bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out) {
   } while (currNodeOffset >= 0);
 
   out->deviceTreeLen = deviceTreeLen;
-  out->ramStartAddr = ramStartAddr;
+  out->ramStartAddr = (void*)ramStartAddr;
   out->ramLen = ramLen;
 
   return true;

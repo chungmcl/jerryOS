@@ -1,11 +1,11 @@
 #include "ppm.h"
 #include "string.h"
 
-static uintptr ramAddy;
+static void* ramAddy;
 static u32 numPhysPages;
 /*
 * The HW page free list will be an array of u8s,
-* where each bit represents free state of a single HW page
+* where each bit represents free state of a single HW page.
 */
 static u8* hwPageFreeList;
 // NOTE: hwPageFreeListLen == # of bytes; != # of bits
@@ -32,6 +32,34 @@ bool ppmInit(const hardwareInfo* const hwInfo, u32 numPreReservedPages) {
     numAlreadyUsedPages - 1, // -1 cause markPageRangeUsed() takes page INDICES as parameters
     0
   );
+}
+
+void* ppmGetPage() {
+  for (u32 byte = 0; byte < hwPageFreeListLen; byte += 1) {
+    if (hwPageFreeList[byte] < 0xFF) {
+      u8 bitOffset = 0;
+      while (((hwPageFreeList[byte] >> bitOffset) & 0b1) == 0b1) bitOffset += 1;
+      u32 freePageIdx = (byte * 8) + bitOffset;
+      if (!markPageRangeUsed(freePageIdx, freePageIdx)) {
+        return NULL;
+      }
+      return ramAddy + (freePageIdx * MEM_PAGE_LEN);
+    }
+  }
+  return NULL;
+}
+
+bool ppmFreePage(void* page, bool clean) {
+  if (((page - ramAddy) % MEM_PAGE_LEN) != 0) return false;
+  if (clean) {
+    memset(page, 0x00, MEM_PAGE_LEN);
+  }
+
+  u32 dirtyPageIdx = (page - ramAddy) / MEM_PAGE_LEN;
+  if ((hwPageFreeList[dirtyPageIdx / 8] >> (dirtyPageIdx % 8) & 0b1) != 0b1) {
+    return false;
+  }
+  return markPageRangeFree(dirtyPageIdx, dirtyPageIdx);
 }
 
 static bool markPageRange(u32 upperIdx, u32 lowerIdx, bool used) {
