@@ -111,7 +111,7 @@
  *     • L2: 
  *        At the final translation stage, bits [24:14] index into a 2048 entry L2 table and each entry points to a 16kB block.
  *     • ┌───────────────────────┐┌───────────────────────┐┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐   
- *       │      VA bit [47]      ││    VA bit [46:36]     ││    VA bits [35:25]     ││    VA bits [35:25]     ││     VA bits [13:0]     │   
+ *       │      VA bit [47]      ││    VA bit [46:36]     ││    VA bits [35:25]     ││    VA bits [24:14]     ││     VA bits [13:0]     │   
  *       └───────────────────────┘└───────────────────────┘└────────────────────────┘└────────────────────────┘└────────────────────────┘   
  *       ┌───────────────────────┐┌───────────────────────┐┌────────────────────────┐┌────────────────────────┐┌────────────────────────┐
  *       │  Level 0 Table Index  ││  Level 1 Table Index  ││   Level 2 Table Index  ││   Level 3 Table Index  ││                        │
@@ -120,7 +120,7 @@
  *       │ • (No block entry)    ││                       ││ • Base address of 32MB ││ • Base address of 16KB ││      and PA [13:0]     │
  *       │                       ││                       ││   block (IPA)          ││   block (IPA)          ││                        │
  *       └───────────────────────┘└───────────────────────┘└────────────────────────┘└────────────────────────┘└────────────────────────┘
- *   "
+ *   " (Note: jerryOS will choose to only use up to VA bit 38, such that we start at L1 and have 8 entries in the initial L1 table.)
 */
 
 #define N_BITS(n) \

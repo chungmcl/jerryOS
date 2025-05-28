@@ -10,21 +10,20 @@ bool setupPTM(const hardwareInfo* const hwInfo) {
     1 // Pre-reserve exactly 1 page as the first page in memory already contains the stack and .bss
   )) return false;
 
-  // Set the Intermediate Physical Address Size to 48 bits, 256TB
-  // TCR_EL1.IPS = 0b101
-
-  // Set Granule size for the TTBR0_EL1 to 16KB
-  // TCR_EL1.TG0 = 0b10
-
-  // Set Granule size for the TTBR1_EL1 to 16KB
-  // TCR_EL1.TG1 = 0b01
-
-  // If the Effective value of TCR_ELx.DS is 0, then the maximum VA and PA supported is 48 bits.
-  // Set the maximum VA/PA to 48 bits
-  // TCR_EL1.DS = 0
-
-  // TCR_ELx.T0SZ configures the IA size of the lower VA range, translated using TTBR0_ELx.
-  // TCR_ELx.T1SZ configures the IA size of the upper VA range, translated using TTBR1_ELx.
+  asm volatile (
+    "msr tcr_el1, %0\n"
+    "isb"
+    : 
+    : "r" ((regTCR_EL1) {
+      .IPS  = 0b101,  // Set the Intermediate Physical Address Size to 48 bits, 256TB
+      .TG0  = 0b10,   // Set Granule size for TTBR0_EL1 to 16KB
+      .TG1  = 0b01,   // Set Granule size for TTBR1_EL1 to 16KB
+      .DS   = 0b0,    // "If the Effective value of TCR_ELx.DS is 0, then the maximum VA and PA supported is 48 bits."
+      .T0SZ = 25,     // TTBR0_EL1 VA address size == pow(2, (64 - T0SZ)); jerryOS will use 8-entry root L1 table -> VA[38:0] -> T0SZ=(64-39)=25
+      .T1SZ = 25      // TTBR1_EL1 VA address size == pow(2, (64 - T1SZ)); jerryOS will use 8-entry root L1 table -> VA[38:0] -> T0SZ=(64-39)=25
+    })
+    : "memory"
+  );
 
   // A translation table is required to be aligned to one of the following:
   //   • For the VMSAv8-64 translation system, if the translation table has fewer than eight entries and an OA size
