@@ -57,6 +57,7 @@ do {                                    \
 typedef struct {
   u64 deviceTreeLen;
   void* ramStartAddr;
+  void* kernelBinStartAddr;
   u64 ramLen;
 } hardwareInfo;
 

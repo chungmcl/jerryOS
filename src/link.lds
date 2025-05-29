@@ -1,12 +1,15 @@
 SECTIONS
 {
-  /* Map jerryOS's ELF to 0x200000.
+  /* Map jerryOS's ELF to 0x104000.
    * The DTB appears to use range 0x0 -> 0x100000,
    * so might as well place jerryOS a 16KB page further.
   */
-  . = 0x104000;
+  _kernel_bin = 0x104000;
+  . = _kernel_bin;
 
   /* Place .bss at 0x40002000.
+   * Place .kernelRootTable at 0x40000000.
+   *
    * .bss is where global variables live,
    * and we need to make sure global variables
    * are mapped to RAM and not the read-only flash memory where
@@ -18,7 +21,12 @@ SECTIONS
    * we'll reserve the first 16KB of memory for both .bss and also the kernel's stack.
    * We'll map .bss to the latter half of the first page, and the stack to the 
    * former half of the first page to avoid the stack overwriting global variables.
+   * We'll also place the kernel's root page tables at the start of RAM since 
+   * the root page table only has 8 entries of u64s, but needs to be 16KB aligned.
+   * Let's hope the kernel's stack never goes back far enough to overwrite the root
+   * page table!
   */
+  .kernelRootTable 0x40000000 : { *(.kernelRootTable) }
   .bss 0x40002000 (NOLOAD) :
   {
     *(.bss)

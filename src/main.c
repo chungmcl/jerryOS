@@ -5,14 +5,18 @@
 s32 main() {
   // note that the device tree is in big endian while this CPU is lil endian
   const void* deviceTreeAddress;
+  const void* kernelBinAddress;
   asm volatile (
-    "mov %0, x1" // Get the device tree's address out of x1
-    : "=r"(deviceTreeAddress) // Output operand
+    "mov %0, x1\n" // Get the device tree's address out of x1
+    "mov %1, x2" // Get the kernel binary address out of x2
+    : "=r"(deviceTreeAddress), 
+      "=r"(kernelBinAddress)
     : // No input operands
     : // No clobbered registers
   );
 
   hardwareInfo hwInfo;
+  hwInfo.kernelBinStartAddr = kernelBinAddress;
   if (!setupDevices(deviceTreeAddress, &hwInfo)) {
     // panic
   }

@@ -6,7 +6,8 @@
     "libfdt.h": "c",
     "jerrytypes.h": "c",
     "kevin.h": "c",
-    "jerryos.h": "c"
+    "jerryos.h": "c",
+    "translationtabledescriptors.h": "c"
   },
   "python.analysis.extraPaths": [
       "/opt/homebrew/Cellar/llvm/19.1.7/libexec/python3.13/site-packages"

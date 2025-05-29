@@ -40,6 +40,9 @@ _start:
   // Therefore, we pass the DTB address to main() as 0x0 instead of 0x0
   ldr x1, =0x0
 
+  // Load x2 with the address of the kernel .text
+  adr x2, _kernel_bin
+
   // Jump to main.c:main
   bl main
 
