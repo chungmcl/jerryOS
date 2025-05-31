@@ -41,6 +41,15 @@ do {                                    \
 	*(volatile u32*)&(_reg) = __myval__;  \
 } while (0)
 
+#define N_BITS(n) \
+  ((1ULL << (n + 1)) - 1)
+
+#define GET_BITS(from, msb, lsb) \
+  (((from) >> lsb) & N_BITS(msb - lsb))
+  
+#define SET_BITS(from, to, msb, lsb) \
+  ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
+
 /**
  * Memory Barriers
  * https://developer.arm.com/documentation/100941/0101/Barriers
@@ -57,10 +66,18 @@ do {                                    \
 typedef struct {
   u64 deviceTreeLen;
   void* ramStartAddr;
-  void* kernelBinStartAddr;
   u64 ramLen;
-} hardwareInfo;
+  void* kernelBinStartAddr;
+  void* kernelRodataStart;
+  void* kernelRodataEnd;
+  void* kernelTextStart;
+  void* kernelTextEnd;
+  void* kernelStackPointerStart;
+  void* kernelBssStart;
+  void* kernelBssEnd;
+} jerryMetaData;
 
-#define MEM_PAGE_LEN (0b1 << 14) // 16KB
+#define MEM_PAGE_GRANULARITY 14
+#define MEM_PAGE_LEN (0b1 << MEM_PAGE_GRANULARITY) // 16KB
 
 #endif /* JERRYOS_H */

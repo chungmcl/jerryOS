@@ -43,6 +43,16 @@ void* memset(const void* s, u8 c, size n) {
   return s;
 }
 
+// TODO(chungmcl): This should be optimizable using ARM NEON/SIMD instructions
+void *memcpy(void *to, const void* from, size n) {
+  u8 *t = to;
+  const u8 *f = from;
+  while (n--) {
+    *t++ = *f++;
+  }
+  return to;
+}
+
 void* memchr(const void* s, s32 c, size n) {
   const u8* p = s;
   unsigned char uc = (unsigned char)c;

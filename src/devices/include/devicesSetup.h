@@ -1,4 +1,4 @@
 #include "jerryOS.h"
 #include "libfdt.h"
 
-bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out);
+bool setupDevices(const void* deviceTreeAddress, jerryMetaData*const out);

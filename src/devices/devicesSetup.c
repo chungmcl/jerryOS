@@ -2,7 +2,7 @@
 #include "virtio.h"
 #include "libfdt.h"
 
-bool setupDevices(const void* deviceTreeAddress, hardwareInfo*const out) {
+bool setupDevices(const void* deviceTreeAddress, jerryMetaData*const out) {
   if (fdt_check_header(deviceTreeAddress) != 0) return false;
 
   s32 currNodeOffset = 0;

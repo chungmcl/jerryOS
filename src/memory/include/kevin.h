@@ -1,8 +1,10 @@
 // Kevin the Page Table Manager
 
 #include "jerryOS.h"
+#include "translationTableDescriptors.h"
 
-bool setupPTM(const hardwareInfo*const hwInfo);
+bool kevinInit(const jerryMetaData*const osMetaData);
+void* kevinMapPageToVA(tableDescriptorS1* rootTable, void* pagePA, uintptr va, bool overwrite);
 
 typedef union {
   u64 raw;

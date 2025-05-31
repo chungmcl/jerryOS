@@ -123,15 +123,6 @@
  *   " (Note: jerryOS will choose to only use up to VA bit 38, such that we start at L1 and have 8 entries in the initial L1 table.)
 */
 
-#define N_BITS(n) \
-  ((1ULL << (n + 1)) - 1)
-
-#define GET_BITS(from, msb, lsb) \
-  (((from) >> lsb) & N_BITS(msb - lsb))
-  
-#define SET_BITS(from, to, msb, lsb) \
-  ((to) = ((to) & ~(N_BITS(msb - lsb) << lsb)) | (((u64)(from) & N_BITS(msb - lsb)) << lsb))
-
 /**************** STAGE 1 TABLE DESCRIPTOR DEFS ****************/
 typedef union {
   u64 raw;
@@ -517,3 +508,19 @@ typedef union {
 #define SET_VALID_BIT(from, to) (GET_BITS(from, to, 0, 0))
 
 /**************** END STAGE 2 PAGE/BLOCK DESCRIPTOR DEFS ****************/
+
+static inline u64 PAToNLTA(void* pa) {
+  return (((uintptr)pa) >> MEM_PAGE_GRANULARITY);
+}
+
+static inline u64 PAToOAB(void* pa) {
+  return (((uintptr)pa) >> MEM_PAGE_GRANULARITY);
+}
+
+static inline void* NLTAToPA(u64 pa) {
+  return (void*)(pa << MEM_PAGE_GRANULARITY);
+}
+
+static inline void* OABToPA(u64 oab) {
+  return (void*)(oab << MEM_PAGE_GRANULARITY);
+}

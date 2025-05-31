@@ -7,6 +7,18 @@ SECTIONS
   _kernel_bin = 0x104000;
   . = _kernel_bin;
 
+  .rodata : {
+    _rodata_start = .;
+    *(.rodata*)
+    _rodata_end = .;
+  }
+
+  .text : {
+    _text_start = .;
+    *(.text)
+    _text_end = .;
+  }
+
   /* Place .bss at 0x40002000.
    * Place .kernelRootTable at 0x40000000.
    *
@@ -29,7 +41,9 @@ SECTIONS
   .kernelRootTable 0x40000000 : { *(.kernelRootTable) }
   .bss 0x40002000 (NOLOAD) :
   {
+    _bss_start = .;
     *(.bss)
     *(COMMON)
+    _bss_end = .;
   }
 }

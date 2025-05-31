@@ -16,7 +16,16 @@ _start:
   // mov x8, {Exception Vector Table Addy}
   // msr VBAR_EL1, x8
 
+  // For some reason, changing the address of .text and .bss 
+  // using link.lds makes QEMU move the DTB to 0x0, despite the docs at
+  // https://qemu-project.gitlab.io/qemu/system/arm/virt.html stating
+  // "For guests booting as “bare-metal” (any other kind of boot), 
+  // the DTB is at the start of RAM (0x4000_0000)."
+  // Therefore, we pass the DTB address to main() as 0x0 instead of 0x4000_0000
+  ldr x1, =0x0
+
   // Set the stack pointer to a specific memory address in RAM.
+  // Leave the value in x2 so we can pass the initial value of $sp to main()
   // Why this particular address?
   // • QEMU maps RAM to physical address 0x4000_0000.
   // • jerryOS uses the Cortex-A710's 16KB memory page option.
@@ -29,19 +38,8 @@ _start:
   //   to avoid overwriting .bss or any other important data.
   // • On Cortex-A710, sp must be 16-byte aligned, so start 16 bytes before
   //   the first byte of .bss: 0x40002000 - 0x10 = 0x40001FF0.
-  ldr x1, =0x40001FF0
-  mov sp, x1
-
-  // For some reason, changing .text to 0x200000 and .bss to 0x4008F008
-  // using link.lds makes QEMU move the DTB to 0x0, despite the docs at
-  // https://qemu-project.gitlab.io/qemu/system/arm/virt.html stating
-  // "For guests booting as “bare-metal” (any other kind of boot), 
-  // the DTB is at the start of RAM (0x4000_0000)."
-  // Therefore, we pass the DTB address to main() as 0x0 instead of 0x0
-  ldr x1, =0x0
-
-  // Load x2 with the address of the kernel .text
-  adr x2, _kernel_bin
+  ldr x2, =0x40001FF0
+  mov sp, x2
 
   // Jump to main.c:main
   bl main

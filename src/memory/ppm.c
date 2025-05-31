@@ -15,9 +15,9 @@ static        bool markPageRange(u32 upperIdx, u32 lowerIdx, bool used);
 static inline bool markPageRangeUsed(u32 upperIdx, u32 lowerIdx) { return markPageRange(upperIdx, lowerIdx, true); }
 static inline bool markPageRangeFree(u32 upperIdx, u32 lowerIdx) { return markPageRange(upperIdx, lowerIdx, false); }
 
-bool ppmInit(const hardwareInfo* const hwInfo, u32 numPreReservedPages) {
-  ramAddy = hwInfo->ramStartAddr;
-  numPhysPages = hwInfo->ramLen / MEM_PAGE_LEN;
+bool ppmInit(const jerryMetaData* const osMetaData, u32 numPreReservedPages) {
+  ramAddy = osMetaData->ramStartAddr;
+  numPhysPages = osMetaData->ramLen / MEM_PAGE_LEN;
   hwPageFreeListLen = numPhysPages / 8;
 
   u32 numAlreadyUsedPages = numPreReservedPages;
