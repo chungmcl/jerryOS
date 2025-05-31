@@ -38,7 +38,7 @@ SECTIONS
    * Let's hope the kernel's stack never goes back far enough to overwrite the root
    * page table!
   */
-  .kernelRootTable 0x40000000 : { *(.kernelRootTable) }
+  .kernelRootTables 0x40000000 : { *(.kernelRootTables) }
   .bss 0x40002000 (NOLOAD) :
   {
     _bss_start = .;

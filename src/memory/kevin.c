@@ -4,8 +4,10 @@
 #include "string.h"
 #include "ppm.h"
 
-__attribute__((section(".kernelRootTable")))
-tableDescriptorS1 kernelRootTable[8];
+__attribute__((section(".kernelRootTables")))
+tableDescriptorS1 kernelRootTable0[8];
+__attribute__((section(".kernelRootTables")))
+tableDescriptorS1 kernelRootTable1[8];
 
 static inline bool 👢🔫KernelPageTable(const jerryMetaData* const osMetaData) {
   /*
@@ -28,7 +30,7 @@ static inline bool 👢🔫KernelPageTable(const jerryMetaData* const osMetaData
   u32 pagesToMap = ((endPage - startPage) / MEM_PAGE_LEN) + 1;
   for (u32 i = 0; i < pagesToMap; i += 1) {
     uintptr curAddy = startPage + (MEM_PAGE_LEN * i);
-    if (kevinMapPageToVA(kernelRootTable, (void*)curAddy, curAddy, false) != curAddy) {
+    if (kevinMapPageToVA(kernelRootTable0, (void*)curAddy, curAddy, false) != curAddy) {
       return false;
     }
   }
@@ -39,10 +41,13 @@ static inline bool 👢🔫KernelPageTable(const jerryMetaData* const osMetaData
   pagesToMap = ((endPage - startPage) / MEM_PAGE_LEN) + 1;
   for (u32 i = 0; i < pagesToMap; i += 1) {
     uintptr curAddy = startPage + (MEM_PAGE_LEN * i);
-    if (kevinMapPageToVA(kernelRootTable, (void*)curAddy, curAddy, false) != curAddy) {
+    if (kevinMapPageToVA(kernelRootTable0, (void*)curAddy, curAddy, false) != curAddy) {
       return false;
     }
   }
+
+  // Note that the Kernel's addy ranges should not be in the "high" range of the VA, i.e.
+  // the VA range mapped by $TTBR1_EL1, so we don't do anything to kernelRootTable1.
 
   return true;
 }
@@ -75,8 +80,8 @@ bool kevinInit(const jerryMetaData* const osMetaData) {
     return false;
   }
   enableMMU(
-    (tableDescriptorS1*)&kernelRootTable,
-    (tableDescriptorS1*)&kernelRootTable,
+    (tableDescriptorS1*)&kernelRootTable0,
+    (tableDescriptorS1*)&kernelRootTable1,
     (regTCR_EL1) {
       .TG0  = 0b10,   // Set Granule size for TTBR0_EL1 to 16KB
       .TG1  = 0b01,   // Set Granule size for TTBR1_EL1 to 16KB
@@ -109,11 +114,11 @@ void* kevinMapPageToVA(tableDescriptorS1* rootTable, void* pagePA, uintptr va, b
   tableDescriptorS1* l2Table;
   pageDescriptorS1* l3Table;
 
-  if (kernelRootTable[l1Idx].validBit && kernelRootTable[l1Idx].tableDescriptor) {
-    l2Table = NLTAToPA(kernelRootTable[l1Idx].nlta);
+  if (kernelRootTable0[l1Idx].validBit && kernelRootTable0[l1Idx].tableDescriptor) {
+    l2Table = NLTAToPA(kernelRootTable0[l1Idx].nlta);
   } else {
     l2Table = ppmGetPage();
-    kernelRootTable[l1Idx] = (tableDescriptorS1) {
+    kernelRootTable0[l1Idx] = (tableDescriptorS1) {
       .validBit = 0b1,
       .tableDescriptor = 0b1,
       .nlta = PAToNLTA(l2Table)
