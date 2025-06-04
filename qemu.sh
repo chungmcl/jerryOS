@@ -2,7 +2,9 @@
 # set -x
 
 BUILD_DIR="build"
-DISK_PATH="${BUILD_DIR}/disk.img"
+DISK_DIR=.disks
+DISK_PATH=$(DISK_DIR)/disk.img
+DISK_PATH="${DISK_DIR}/disk.img"
 LLDB_PORT=$(sed -nE "s/.*gdb-remote localhost:([0-9]+)/\1/p" ./lldb-startup.txt)
 MEMORY_GB=4
 

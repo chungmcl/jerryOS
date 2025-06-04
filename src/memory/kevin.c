@@ -1,7 +1,6 @@
 // Kevin the Page Table Manager
 
 #include "kevin.h"
-#include "string.h"
 #include "ppm.h"
 
 __attribute__((section(".kernelRootTables")))

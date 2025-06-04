@@ -1,11 +1,13 @@
 NAME=jerryOS
 SRC_DIR=src
 BUILD_DIR=build
-DISK_PATH=$(BUILD_DIR)/disk.img
+DISK_DIR=.disks
+DISK_PATH=$(DISK_DIR)/disk.img
 
 all:
 	export ARCHFLAGS="-arch arm64"
 	mkdir -p $(BUILD_DIR)
+	mkdir -p $(DISK_DIR)
 
 	@if [ ! -f "$(DISK_PATH)" ]; then echo "\ndisk.img not already present. Creating with qemu-img create:"; qemu-img create -f raw "$(DISK_PATH)" 1G; echo "\n"; fi
 
@@ -35,4 +37,6 @@ all:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf $(DISK_DIR)
 	mkdir -p $(BUILD_DIR)
+	mkdir -p $(DISK_DIR)
