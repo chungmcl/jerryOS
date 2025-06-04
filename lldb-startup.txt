@@ -1,11 +1,13 @@
-settings set target.exec-search-paths ./build
-target create ./build/jerryOS
-target symbols add ./build/jerryOS
+// These should be automatically ran by rust-lldb
+# command script import "~/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/etc/lldb_lookup.py"
+# command source -s 0 '~/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/etc/lldb_commands'
+
+settings set target.exec-search-paths ./target/aarch64-unknown-jerryOS-elf/debug
+target create ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
+target symbols add ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
 
 breakpoint set --name main
 
-command script import ./scripts_lldb/dtb_to_dts.py
-
-settings set stop-disassembly-display always
+# settings set stop-disassembly-display always
 
 gdb-remote localhost:4321

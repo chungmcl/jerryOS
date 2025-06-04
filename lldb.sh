@@ -1,1 +1,1 @@
-lldb -s lldb-startup.txt --no-lldbinit
+rust-lldb -s lldb-startup.txt --no-lldbinit

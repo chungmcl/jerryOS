@@ -1,0 +1,1 @@
+lldb -s lldb-startup.txt --no-lldbinit
