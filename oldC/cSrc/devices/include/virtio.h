@@ -67,6 +67,6 @@ typedef struct _virtio_cap {
 	char* help;
 } virtioCapability;
 
-s32 setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset, void* output);
+i32 setupVirtIODevice(const void* deviceTreeAddress, i32 virtIODevNodeOffset, void* output);
 
 #endif // VIRTIO_H

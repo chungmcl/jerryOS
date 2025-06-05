@@ -10,5 +10,11 @@
     "check",
     "--target",
     "aarch64-unknown-jerryOS-elf.json"
-  ]
+  ],
+  "python.analysis.extraPaths": [
+      "/opt/homebrew/Cellar/llvm/19.1.7/libexec/python3.13/site-packages"
+  ],
+  "files.associations": {
+    "libfdt.h": "c"
+  }
 }
