@@ -11,6 +11,15 @@ _start:
   mrs x20, ID_AA64MMFR3_EL1
   mrs x21, ID_AA64MMFR4_EL1
 
+  // Disable trapping of "instructions that access Advanced SIMD and floating-point registers."
+  // i.e., enable Advanced SIMD and floating-point registers.
+  // CPACR_EL1's FPEN[21:20] bits should be set to
+  // "0b11:	This control does not cause execution of any instructions to be trapped"
+  mrs x1, CPACR_EL1
+  orr x1, x1, #(0b11 << 20)
+  msr CPACR_EL1, x1
+  isb
+
   // TODO(chungmcl): Set the register pointer (VBAR_EL1)
   // to an Exception Vector Table
   // mov x8, {Exception Vector Table Addy}

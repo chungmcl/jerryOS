@@ -7,8 +7,9 @@ settings set target.exec-search-paths ./target/aarch64-unknown-jerryOS-elf/debug
 target create ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
 target symbols add ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
 
+breakpoint set --func-regex jerry_panic
 breakpoint set --name main
 
-# settings set stop-disassembly-display always
+settings set stop-disassembly-display always
 
 gdb-remote localhost:4321

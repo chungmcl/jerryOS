@@ -7,5 +7,4 @@ if [ ! -f "${DISK_PATH}" ]; then echo "\ndisk.img not already present. Creating 
 
 rustup override set nightly
 rustup component add rust-src
-# cargo +nightly build -Z build-std=core --target=aarch64-unknown-jerryOS-elf.json --verbose
-cargo +nightly build -Z build-std=core --target=aarch64-unknown-jerryOS-elf.json
+cargo +nightly build -Z build-std=core --target=aarch64-unknown-jerryOS-elf.json # --verbose

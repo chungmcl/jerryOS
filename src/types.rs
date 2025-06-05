@@ -1,4 +1,3 @@
-
 pub struct JerryMetaData {
     pub kernel_dtb_start    : *const u8,
     pub kernel_dtb_end      : *const u8,
@@ -10,4 +9,9 @@ pub struct JerryMetaData {
     pub kernel_text_end     : *const u8,
     pub kernel_bss_start    : *const u8,
     pub kernel_bss_end      : *const u8,
+    pub ram_start           : *const u8,
+    pub ram_len             : u64
 }
+
+#[macro_export]
+macro_rules! break_dummy {() => { { let _: u32 = 2 + 2; } }; }

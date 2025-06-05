@@ -1,12 +1,13 @@
 #![no_std]
 #![no_main]
+#![allow(dead_code)]
 #[link(name = "entry")] unsafe extern "C" {}
 use core::panic::PanicInfo;
-use core::arch::asm;
+pub use core::arch::asm;
+pub use core::ptr::*;
+pub use crate::types::*;
 mod types;
 mod devices;
-use crate::types::*;
-
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {
@@ -40,7 +41,7 @@ pub extern "C" fn main() -> ! {
 
         let mut jerry_meta_data = JerryMetaData {
             kernel_dtb_start    : kernel_dtb          as *const u8,
-            kernel_dtb_end      : 0                   as *const u8,
+            kernel_dtb_end      : 0                   as *const u8, // Set at run-time in devices::init_devices()
             kernel_init_sp      : kernel_init_sp      as *const u8,
             kernel_bin_start    : kernel_bin_start    as *const u8,
             kernel_rodata_start : kernel_rodata_start as *const u8,
@@ -49,16 +50,26 @@ pub extern "C" fn main() -> ! {
             kernel_text_end     : kernel_text_end     as *const u8,
             kernel_bss_start    : kernel_bss_start    as *const u8,
             kernel_bss_end      : kernel_bss_end      as *const u8,
+            ram_start           : 0                   as *const u8, // Set at run-time in devices::init_devices()
+            ram_len             : 0                                 // Set at run-time in devices::init_devices()
         };
 
-        devices::init_devices(&mut jerry_meta_data);
+        if !devices::init_devices(&mut jerry_meta_data) { panic!("devices::init_devices returned false!") }
     }
 
     loop {}
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    // TODO(chungmcl): Implement panic handler
+fn jerry_panic(info: &PanicInfo) -> ! {
+    let _msg: &str = info
+        .message()
+        .as_str()
+        .expect("Unknown panic!")
+    ;
+    /*
+        p/s _msg.data_ptr
+    */
+
     loop {}
 }
