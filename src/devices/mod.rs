@@ -142,7 +142,7 @@ pub enum FDTError {
     Alignment    = -(FDT_ERR_ALIGNMENT as i32)
 }
 
-fn get_node_property<T>(node_offset: i32, property_name: &[u8]) -> Result<&'static [T], FDTError>  {
+unsafe fn get_node_property<T>(node_offset: i32, property_name: &[u8]) -> Result<&'static [T], FDTError>  {
     unsafe {
         let mut lenp: i32 = 0;
         let reg_ptr: *const u8 = fdt_getprop(
