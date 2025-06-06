@@ -54,7 +54,16 @@ pub extern "C" fn main() -> ! {
             ram_len             : 0                                 // Set at run-time in devices::init_devices()
         };
 
-        if !devices::init_devices(&mut jerry_meta_data) { panic!("devices::init_devices returned false!") }
+        match devices::init_devices(jerry_meta_data.kernel_dtb_start) { 
+            Ok((kernel_dtb_end, ram_start, ram_len)) => {
+                jerry_meta_data.kernel_dtb_end = kernel_dtb_end;
+                jerry_meta_data.ram_start = ram_start;
+                jerry_meta_data.ram_len = ram_len;
+            },
+            Err(_e) => {
+                panic!("devices::init_devices errored!") 
+            }
+        }
     }
 
     loop {}

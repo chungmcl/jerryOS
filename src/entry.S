@@ -25,11 +25,13 @@ _start:
   // mov x8, {Exception Vector Table Addy}
   // msr VBAR_EL1, x8
 
-  // https://qemu-project.gitlab.io/qemu/system/arm/virt.html states:
+  // For some reason, changing the address of .text and .bss 
+  // using link.lds makes QEMU move the DTB to 0x0, despite the docs at
+  // https://qemu-project.gitlab.io/qemu/system/arm/virt.html stating
   // "For guests booting as “bare-metal” (any other kind of boot), 
   // the DTB is at the start of RAM (0x4000_0000)."
-  // We pass to main the address of the device tree via x1
-  ldr x1, =0x40000000
+  // Therefore, we pass the DTB address to main() as 0x0 instead of 0x4000_0000
+  ldr x1, =0x0
 
   // Set the stack pointer to a specific memory address in RAM.
   // Leave the value in x2 so we can pass the initial value of $sp to main()
@@ -39,12 +41,12 @@ _start:
   // • jerryOS will use the second 16KB page after the DTB for the stack and the kernel's
   //   global variables (the .bss section of the kernel ELF).
   // • The second 16KB page in memory, starting at 0x40008000, is structured such that:
-  //   .bss = [0x4000c000:0x4000a000] (i.e., the second half of the page).
+  //   .bss = [0x4000bfff:0x4000a000] (i.e., the second half of the page).
   //   Therefore, sp starts before 0x4000a000 and grows backwards
   //   towards the ROM address range, which is just the jerryOS .text and .rodata, 
   //   to avoid overwriting .bss or any other important data.
   // • On Cortex-A710, sp must be 16-byte aligned, so start 16 bytes before
-  //   the first byte of .bss: 0x40002000 - 0x10 = 0x40009ff0.
+  //   the first byte of .bss: 0x4000a000 - 0x10 = 0x40009ff0.
   ldr x2, =0x40009ff0
   mov sp, x2
 
