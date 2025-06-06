@@ -59,8 +59,6 @@ pub extern "C" fn main() -> ! {
                 jerry_meta_data.kernel_dtb_end = kernel_dtb_end;
                 jerry_meta_data.ram_start = ram_start;
                 jerry_meta_data.ram_len = ram_len;
-
-                break_dummy!();
             },
             Err(_e) => {
                 panic!("devices::init_devices errored!") 
