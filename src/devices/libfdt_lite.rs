@@ -105,7 +105,7 @@ pub struct FDTItr {
             cur_node: FDTNode { offset: 0, depth: 0 }
         });
     }
-} impl<'a> Iterator for &'a mut FDTItr {
+} impl Iterator for FDTItr {
     type Item = FDTNode;
 
     fn next(&mut self) -> Option<Self::Item> {
