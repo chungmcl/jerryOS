@@ -1,3 +1,5 @@
+use core::ptr;
+
 pub struct JerryMetaData {
     pub kernel_dtb_start    : *const u8,
     pub kernel_dtb_end      : *const u8,
@@ -11,6 +13,13 @@ pub struct JerryMetaData {
     pub kernel_bss_end      : *const u8,
     pub ram_start           : *const u8,
     pub ram_len             : u64
+}
+
+#[inline(always)]
+pub unsafe fn read32(reg: &u32) -> u32 {
+    unsafe { 
+        return ptr::read_volatile(reg as *const u32);
+    }
 }
 
 #[macro_export]

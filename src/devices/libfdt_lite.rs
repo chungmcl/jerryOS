@@ -6,6 +6,10 @@ mod libfdtLite {
 use libfdtLite::*;
 
 use crate::devices::*;
+static CELL_BYTES: usize = size_of::<u32>() as usize;
+// TODO(chungmcl): convert these to OneCells or something similar.
+static mut ADDRESS_CELLS: usize = 0;
+static mut SIZE_CELLS: usize = 0;
 static mut KERNEL_DTB_START: *const u8 = ptr::null_mut();
 static mut INITIALIZED: bool = false;
 
@@ -32,7 +36,8 @@ pub enum FDTError {
     NoPhandles           = -(FDT_ERR_NOPHANDLES as i32),  
     BadFlags             = -(FDT_ERR_BADFLAGS as i32),    
     Alignment            = -(FDT_ERR_ALIGNMENT as i32),
-    LibfdtNotInitialized = -(FDT_ERR_ALIGNMENT as i32) - 1
+    LibfdtNotInitialized = -(FDT_ERR_ALIGNMENT as i32) - 1,
+    UnexpectedRegFormat  = -(FDT_ERR_ALIGNMENT as i32) - 2
 }
 
 pub fn libfdt_lite_init(kernel_dtb_start: *const u8) -> Result<(), FDTError> {
@@ -44,6 +49,24 @@ pub fn libfdt_lite_init(kernel_dtb_start: *const u8) -> Result<(), FDTError> {
             INITIALIZED = false;
             return Err(fdt_error);
         }
+
+        let mut lenp: i32 = 0;
+        let size_cells_ptr: *const u32 = fdt_getprop(
+            KERNEL_DTB_START as *const c_void, 
+            0 as c_int, 
+            b"#size-cells\0".as_ptr(), &mut lenp as *mut i32
+        ) as *const u32;
+        if lenp < 0 { return Err(FDTError::from(lenp)); }
+        SIZE_CELLS = u32::from_be(*size_cells_ptr) as usize;
+
+        let address_cells_ptr: *const u32 = fdt_getprop(
+            KERNEL_DTB_START as *const c_void, 
+            0 as c_int, 
+            b"#address-cells\0".as_ptr(), &mut lenp as *mut i32
+        ) as *const u32;
+        if lenp < 0 { return Err(FDTError::from(lenp)); }
+        ADDRESS_CELLS = u32::from_be(*size_cells_ptr) as usize;
+
         INITIALIZED = true;
         return Ok(())
     }
@@ -73,7 +96,8 @@ pub struct FDTNode {
             }
         }
     }
-    pub fn get_property<T>(&self, property_name: &[u8]) -> Result<&'static [T], FDTError>  {
+
+    pub fn get_property_raw(&self, property_name: &[u8]) -> Result<&'static [u8], FDTError>  {
         unsafe {
             let mut lenp: i32 = 0;
             let reg_ptr: *const u8 = fdt_getprop(
@@ -85,9 +109,73 @@ pub struct FDTNode {
             if lenp < 0 {
                 Err(FDTError::from(lenp))
             } else {
-                let element_count = (lenp as usize) / mem::size_of::<T>();
-                Ok(slice::from_raw_parts(reg_ptr as *const T, element_count))
+                Ok(slice::from_raw_parts(reg_ptr as *const u8, lenp as usize))
             }
+        }
+    }
+
+    pub fn get_reg(&self) -> Result<(u64, u64), FDTError>  {
+        unsafe {
+            let mut lenp: i32 = 0;
+            let reg_ptr: *const u8 = fdt_getprop(
+                KERNEL_DTB_START as *const c_void, 
+                self.offset as c_int, 
+                b"reg\0".as_ptr(), 
+                &mut lenp as *mut i32
+            ) as *const u8;
+
+            let address_bytes: usize = ADDRESS_CELLS * CELL_BYTES;
+            let size_bytes: usize = SIZE_CELLS * CELL_BYTES;
+
+            if lenp != (address_bytes + size_bytes) as i32 {
+                if lenp < 0 && lenp > FDTError::UnexpectedRegFormat as i32 {
+                    return Err(FDTError::from(lenp));
+                } else {
+                    return Err(FDTError::UnexpectedRegFormat);
+                }
+            }
+
+            let address_slice: &[u8] = slice::from_raw_parts(
+                reg_ptr, 
+                address_bytes
+            );
+            let size_slice: &[u8] = slice::from_raw_parts(
+                reg_ptr.add(address_bytes), 
+                size_bytes
+            );
+            const U32_BYTES: usize = size_of::<u32>();
+            const U64_BYTES: usize = size_of::<u64>();
+            let address: u64 = match address_bytes {
+                U32_BYTES => { 
+                    u32::from_be_bytes(
+                        address_slice[0..address_bytes]
+                        .try_into().unwrap()
+                    ) as u64 
+                },
+                U64_BYTES => { 
+                    u64::from_be_bytes(
+                        address_slice[0..address_bytes]
+                        .try_into().unwrap()
+                    )
+                },
+                _ => panic!("Invalid get_regs address bytes!")
+            };
+            let size: u64 = match size_bytes {
+                U32_BYTES => { 
+                    u32::from_be_bytes(
+                        size_slice[0..size_bytes]
+                        .try_into().unwrap()
+                    ) as u64 
+                },
+                U64_BYTES => { 
+                    u64::from_be_bytes(
+                        size_slice[0..size_bytes]
+                        .try_into().unwrap()
+                    )
+                },
+                _ => panic!("Invalid get_regs size bytes!")
+            };
+            return Ok((address, size));
         }
     }
 }

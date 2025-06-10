@@ -10,8 +10,8 @@ pub use num_enum::FromPrimitive;
 pub enum DeviceSetupError {
     LibFDTInitFailed(FDTError),
     FDTItrNewFailed(FDTError),
-    RAMSetup(ram::RAMSetupError),
-    VirtIOSetup
+    RAMSetup(FDTError),
+    VirtIOSetup(virtio::VirtIOError)
 }
  
 pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8, u64), DeviceSetupError> {
@@ -35,6 +35,8 @@ pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8
     */
     let dtb_total_size: u32 = unsafe { *(kernel_dtb_start.add(4) as *const u32) };
     let kernel_dtb_end: *const u8 = unsafe { kernel_dtb_start.add(dtb_total_size as usize) as *const u8 };
+
+    // These are set at run-time in ram::load_ram_specs()
     let mut ram_start: *const u8 = ptr::null_mut();
     let mut ram_len: u64 = 0;
 
@@ -58,7 +60,12 @@ pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8
                         }
                     },
                     name if name.starts_with("virtio_mmio") => {
+                        match virtio::setup_virtio_device(device) {
+                            Ok(virtio_device) => {
 
+                            },
+                            Err(e) => return Err(DeviceSetupError::VirtIOSetup(e))
+                        }
                     },
                     _ => { }
                 }

@@ -1,4 +1,4 @@
-use crate::devices::*;
+use crate::{devices::*, read32};
 
 pub enum VirtIODevice {
     Block(VirtIOBlk),
@@ -11,12 +11,42 @@ pub struct VirtIOBlk {
 pub enum VirtIOError {
     WrongMagicValue,
     UnsupportedVersion,
-    UnsupportedDeviceType
+    UnsupportedDeviceType,
+    GetRegsFailed(FDTError),
+    GetInterruptIDFailed(FDTError)
 }
 
-// fn setup_virtio_device(jerry_meta_data: &JerryMetaData, virtio_dev_node_offset: i32) -> Result<VirtIODevice, VirtIOError> { 
-//    
-// }
+pub fn setup_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOError> { 
+    // let virtio_regs: &'static VirtIORegs = match virtio_node.get_reg() {   
+    //     Ok((virtio_regs_ptr, _virtio_regs_ptr_len)) => {
+    //         unsafe {
+    //             &*(virtio_regs_ptr as *const VirtIORegs)
+    //         }
+    //     }, 
+    //     Err(e) => {
+    //         return Err(VirtIOError::GetRegsFailed(e));
+    //     }
+    // };
+    // 
+    // let interrupt_id: u32 = match virtio_node.get_property::<u32>(b"interrupts\0") {
+    //     Ok(node_regs) => {
+    //         u32::from_be(node_regs[1]) + 32 // Idk why we have to add a constant 32...?
+    //     },
+    //     Err(e) => {
+    //         return Err(VirtIOError::GetInterruptIDFailed(e))
+    //     }
+    // };
+    // unsafe {
+    //     let magic_value: u32 = read32(
+    //         &virtio_regs.magic_value
+    //     );
+    //     if magic_value != VIRTIO_MAGIC {
+    //         return Err(VirtIOError::WrongMagicValue);
+    //     }
+    // }
+
+    Ok(VirtIODevice::Block(VirtIOBlk {size_bytes: 0}))
+}
 
 #[repr(C, align(4))]
 pub struct VirtIORegs {
@@ -58,3 +88,18 @@ pub struct VirtIORegs {
     config_generation: u32,
     // config: [u32; 0] // Flexible Array Member
 }
+
+
+pub const VIRTIO_MAGIC:   u32 = 0x7472_6976;
+pub const VIRTIO_VERSION: u32 = 0x2;
+
+pub const VIRTIO_DEV_NET: u32 = 0x1;
+pub const VIRTIO_DEV_BLK: u32 = 0x2;
+
+// Status bit values
+pub const VIRTIO_STATUS_ACKNOWLEDGE:        u32 = 1;
+pub const VIRTIO_STATUS_DRIVER:             u32 = 2;
+pub const VIRTIO_STATUS_FAILED:             u32 = 128;
+pub const VIRTIO_STATUS_FEATURES_OK:        u32 = 8;
+pub const VIRTIO_STATUS_DRIVER_OK:          u32 = 4;
+pub const VIRTIO_STATUS_DEVICE_NEEDS_RESET: u32 = 64;
