@@ -4,8 +4,10 @@ pub mod libfdt_lite;
 pub use libfdt_lite::*;
 
 pub use core::ffi::{c_void, c_int};
-pub use core::{mem, slice, ptr};
+pub use core::{slice, ptr};
 pub use num_enum::FromPrimitive;
+
+use crate::devices::virtio::VirtIOError;
 
 pub enum DeviceSetupError {
     LibFDTInitFailed(FDTError),
@@ -64,6 +66,7 @@ pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8
                             Ok(virtio_device) => {
 
                             },
+                            Err(VirtIOError::UnsupportedDeviceType) => { /* skip device; do nothing */ },
                             Err(e) => return Err(DeviceSetupError::VirtIOSetup(e))
                         }
                     },

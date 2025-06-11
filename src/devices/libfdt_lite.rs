@@ -65,7 +65,7 @@ pub fn libfdt_lite_init(kernel_dtb_start: *const u8) -> Result<(), FDTError> {
             b"#address-cells\0".as_ptr(), &mut lenp as *mut i32
         ) as *const u32;
         if lenp < 0 { return Err(FDTError::from(lenp)); }
-        ADDRESS_CELLS = u32::from_be(*size_cells_ptr) as usize;
+        ADDRESS_CELLS = u32::from_be(*address_cells_ptr) as usize;
 
         INITIALIZED = true;
         return Ok(())
@@ -97,7 +97,7 @@ pub struct FDTNode {
         }
     }
 
-    pub fn get_property_raw(&self, property_name: &[u8]) -> Result<&'static [u8], FDTError>  {
+    pub fn get_property(&self, property_name: &[u8]) -> Result<&'static [u32], FDTError>  {
         unsafe {
             let mut lenp: i32 = 0;
             let reg_ptr: *const u8 = fdt_getprop(
@@ -109,7 +109,7 @@ pub struct FDTNode {
             if lenp < 0 {
                 Err(FDTError::from(lenp))
             } else {
-                Ok(slice::from_raw_parts(reg_ptr as *const u8, lenp as usize))
+                Ok(slice::from_raw_parts(reg_ptr as *const u32, lenp as usize))
             }
         }
     }
