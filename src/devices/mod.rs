@@ -6,8 +6,7 @@ pub use libfdt_lite::*;
 pub use core::ffi::{c_void, c_int};
 pub use core::{slice, ptr};
 pub use num_enum::FromPrimitive;
-
-use crate::devices::virtio::VirtIOError;
+use virtio::VirtIOError;
 
 pub enum DeviceSetupError {
     LibFDTInitFailed(FDTError),
