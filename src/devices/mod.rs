@@ -63,8 +63,8 @@ pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8
                     },
                     name if name.starts_with("virtio_mmio") => {
                         match virtio::setup_virtio_device(device) {
-                            Ok(virtio_device) => {
-
+                            Ok(_virtio_device) => {
+                                // TODO(chungmcl): do... stuff? with the virtio_device
                             },
                             Err(VirtIOError::UnsupportedDeviceType) => { /* skip device; do nothing */ },
                             Err(e) => return Err(DeviceSetupError::VirtIOSetup(e))

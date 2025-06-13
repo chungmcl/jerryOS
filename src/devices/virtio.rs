@@ -1,4 +1,3 @@
-use core::ptr::read;
 use crate::{devices::*, read32, write32, read64, dsb, SBType};
 
 pub fn setup_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOError> { 
@@ -55,8 +54,8 @@ pub fn setup_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOE
         match device_id {
             VIRTIO_DEV_BLK => {
                 match setup_block_device(virtio_regs, interrupt_id) {
-                    Ok(_) => {
-                        return Ok(VirtIODevice::Block(VirtIOBlk { size_bytes: 0 }));
+                    Ok(blk_dev) => {
+                        return Ok(VirtIODevice::Block(blk_dev));
                     },
                     Err(_e) => {
                         return Err(VirtIOError::WrongMagicValue);
@@ -73,7 +72,7 @@ pub fn setup_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOE
     }
 }
 
-fn setup_block_device(blk_dev_regs: &VirtIORegs, interrupt_id: u32) -> Result<u64, VirtIOError> {
+fn setup_block_device(blk_dev_regs: &VirtIORegs, _interrupt_id: u32) -> Result<VirtIOBlk, VirtIOError> {
     let mut before: u32;
     let mut after: u32;
     let mut capacity: u64;
@@ -85,7 +84,7 @@ fn setup_block_device(blk_dev_regs: &VirtIORegs, interrupt_id: u32) -> Result<u6
                 capacity = read64(&(*blk_dev_config_ptr).capacity) * read32(&(*blk_dev_config_ptr).blk_size) as u64;
                 after = read32(&blk_dev_regs.config_generation);
             }
-            if after == before { break capacity };
+            if after == before { break VirtIOBlk { size_bytes: capacity } };
         }
     );
 }
