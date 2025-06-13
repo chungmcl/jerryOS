@@ -37,7 +37,7 @@ bool strStartsWith(const char* input, const char* prefix) {
 }
 
 // TODO(chungmcl): This should be optimizable using ARM NEON/SIMD instructions
-void* memset(void* s, u8 c, size n) {
+void* memset(const void* s, u8 c, size n) {
   u8* dst = (u8*)s;
   for (size i = 0; i < n; i += 1) *(dst + i) = c;
   return s;

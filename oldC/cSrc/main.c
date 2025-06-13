@@ -2,7 +2,7 @@
 #include "devicesSetup.h"
 #include "kevin.h"
 
-s32 main() {
+i32 main() {
   // note that the device tree is in big endian while this CPU is lil endian
   extern u8 _kernel_bin;
   extern u8 _rodata_start;

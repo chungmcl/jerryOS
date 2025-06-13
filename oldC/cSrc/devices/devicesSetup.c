@@ -5,8 +5,8 @@
 bool setupDevices(const void* deviceTreeAddress, jerryMetaData*const out) {
   if (fdt_check_header(deviceTreeAddress) != 0) return false;
 
-  s32 currNodeOffset = 0;
-  s32 depth = 0;
+  i32 currNodeOffset = 0;
+  i32 depth = 0;
   const void* currNode = (const void*)deviceTreeAddress;
 
   u64 deviceTreeLen = fdt_totalsize(deviceTreeAddress);
@@ -25,7 +25,7 @@ bool setupDevices(const void* deviceTreeAddress, jerryMetaData*const out) {
      */ 
     {
       if (strStartsWith(currNodeName, "memory@")) {
-        s32 regLen;
+        i32 regLen;
         const fdt32_t* regPtr = fdt_getprop(
           deviceTreeAddress, 
           currNodeOffset, 

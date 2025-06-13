@@ -88,16 +88,16 @@ bool setupBlockDevice(
   return true;
 }
 
-s32 setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset, void* output) {
+i32 setupVirtIODevice(const void* deviceTreeAddress, i32 virtIODevNodeOffset, void* output) {
   // If any of these steps go irrecoverably wrong, the driver SHOULD set the FAILED status bit to indicate that it
   // has given up on the device (it can reset the device later to restart if desired). The driver MUST NOT continue
   // initialization in that case.
   // The driver MUST NOT notify the device before setting DRIVER_OK.
-  s32 regLen;
+  i32 regLen;
   const fdt32_t* regPtr = fdt_getprop(deviceTreeAddress, virtIODevNodeOffset, "reg", &regLen);
   virtioRegs* regs = (virtioRegs*)((u64)fdt32_to_cpu(regPtr[1]));
 
-  s32 interruptsLen;
+  i32 interruptsLen;
   const fdt32_t* interruptsPtr = fdt_getprop(deviceTreeAddress, virtIODevNodeOffset, "interrupts", &interruptsLen);
   u32 interruptID = (u32)fdt32_to_cpu(interruptsPtr[1]) + 32; // Idk why we have to add a constant 32...?
 
@@ -139,5 +139,5 @@ s32 setupVirtIODevice(const void* deviceTreeAddress, s32 virtIODevNodeOffset, vo
     }
   }
 
-  return (s32)deviceID;
+  return (i32)deviceID;
 }

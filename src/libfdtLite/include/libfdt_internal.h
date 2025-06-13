@@ -10,10 +10,10 @@
 #define FDT_ALIGN(x, a)		(((x) + (a) - 1) & ~((a) - 1))
 #define FDT_TAGALIGN(x)		(FDT_ALIGN((x), FDT_TAGSIZE))
 
-s32 fdt_ro_probe_(const void *fdt);
+i32 fdt_ro_probe_(const void *fdt);
 #define FDT_RO_PROBE(fdt)					\
 	{							\
-		s32 totalsize_;				\
+		i32 totalsize_;				\
 		if ((totalsize_ = fdt_ro_probe_(fdt)) < 0)	\
 			return totalsize_;			\
 	}

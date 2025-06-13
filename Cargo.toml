@@ -1,0 +1,21 @@
+[package]
+name = "jerryOS"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+num_enum = { version = "0.7.3", default-features = false }
+
+[build-dependencies]
+bindgen = "0.71.1"
+cc = "1.0"
+
+[profile.dev]
+panic = "abort"
+debug = true
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+debug = false
+opt-level = 3

@@ -6,19 +6,16 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/src/include/*",
                 "${workspaceFolder}/src/jerryLibc/*",
-                "${workspaceFolder}/src/libfdtLite/*"
+                "${workspaceFolder}/src/devices/**"
             ],
-            "defines": [
-                "RUST"
-            ],
+            "defines": [],
             "compilerPath": "/opt/homebrew/opt/llvm/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64",
             "configurationProvider": "ms-vscode.makefile-tools",
             "compilerArgs": [
-                "-I${workspaceFolder}/src/jerryLibc/include/",
-                "-I${workspaceFolder}/src/libfdtLite/include/"
+                "-I${workspaceFolder}/src/jerryLibc/include/"
             ]
         }
     ],

@@ -1,0 +1,22 @@
+{
+  "llvm-target": "aarch64-unknown-jerryOS-elf",
+  "data-layout": "e-m:e-p270:32:32-p271:32:32-p272:64:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
+  "arch": "aarch64",
+  "os": "jerryOS",
+  "vendor": "unknown",
+  "linker-flavor": "ld.lld",
+  "linker": "/opt/homebrew/bin/ld.lld",
+  "pre-link-args": {
+    "ld.lld": ["-Tlink.lds"]
+  },
+  "executables": true,
+  "relocation-model": "static",
+  "disable-redzone": true,
+  "panic-strategy": "abort",
+  "code-model": "tiny",
+  "crt-static-respected": true,
+  "target-c-int-width": "32",
+  "target-pointer-width": "64",
+  "features": "+strict-align",
+  "max-atomic-width": 64
+}

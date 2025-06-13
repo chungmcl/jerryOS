@@ -156,7 +156,7 @@ int fdt_next_property_offset(const void *fdt, int offset)
 
 const char *fdt_get_string(const void *fdt, int stroffset, int *lenp)
 {
-	s32 totalsize;
+	i32 totalsize;
 	u32 absoffset;
 	size len;
 	int err;
@@ -235,7 +235,7 @@ int fdt_first_property_offset(const void *fdt, int nodeoffset)
  * that the given buffer contains what appears to be a flattened
  * device tree with sane information in its header.
  */
-s32 fdt_ro_probe_(const void *fdt)
+i32 fdt_ro_probe_(const void *fdt)
 {
 	u32 totalsize = fdt_totalsize(fdt);
 
