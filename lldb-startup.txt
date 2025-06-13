@@ -8,7 +8,7 @@ target create ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
 target symbols add ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
 
 breakpoint set --func-regex jerry_panic
-breakpoint set --name main
+# breakpoint set --name main
 
 settings set stop-disassembly-display always
 
