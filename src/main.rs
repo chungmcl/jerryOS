@@ -8,6 +8,7 @@ pub use core::ptr::*;
 pub use crate::types::*;
 mod types;
 mod devices;
+mod memory;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {
@@ -61,7 +62,16 @@ pub extern "C" fn main() -> ! {
                 jerry_meta_data.ram_len = ram_len;
             },
             Err(_e) => {
-                panic!("devices::init_devices errored!") 
+                panic!("devices::init_devices errored!")
+            }
+        }
+
+        match memory::init_memory() {
+            Ok(_) => {
+                
+            },
+            Err(_e) => {
+                panic!("memory::init_memory errored!")
             }
         }
     }
