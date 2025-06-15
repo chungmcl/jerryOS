@@ -8,6 +8,7 @@ pub use core::ptr::*;
 pub use crate::types::*;
 mod types;
 mod devices;
+mod memory;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {
@@ -39,19 +40,21 @@ pub extern "C" fn main() -> ! {
             options(nostack, readonly)
         );
 
-        let mut jerry_meta_data = JerryMetaData {
-            kernel_dtb_start    : kernel_dtb          as *const u8,
-            kernel_dtb_end      : 0                   as *const u8, // Set at run-time in devices::init_devices()
-            kernel_init_sp      : kernel_init_sp      as *const u8,
-            kernel_bin_start    : kernel_bin_start    as *const u8,
-            kernel_rodata_start : kernel_rodata_start as *const u8,
-            kernel_rodata_end   : kernel_rodata_end   as *const u8,
-            kernel_text_start   : kernel_text_start   as *const u8,
-            kernel_text_end     : kernel_text_end     as *const u8,
-            kernel_bss_start    : kernel_bss_start    as *const u8,
-            kernel_bss_end      : kernel_bss_end      as *const u8,
-            ram_start           : 0                   as *const u8, // Set at run-time in devices::init_devices()
-            ram_len             : 0                                 // Set at run-time in devices::init_devices()
+        let mut jerry_meta_data: JerryMetaData = JerryMetaData {
+            kernel_dtb_start       : kernel_dtb          as *const u8,
+            kernel_dtb_end         : 0                   as *const u8, // Set at run-time in devices::init_devices()
+            kernel_init_sp         : kernel_init_sp      as *const u8,
+            kernel_bss_start       : kernel_bss_start    as *const u8,
+            kernel_bss_end         : kernel_bss_end      as *const u8,
+            kernel_bin_start       : kernel_bin_start    as *const u8,
+            kernel_rodata_start    : kernel_rodata_start as *const u8,
+            kernel_rodata_end      : kernel_rodata_end   as *const u8,
+            kernel_text_start      : kernel_text_start   as *const u8,
+            kernel_text_end        : kernel_text_end     as *const u8,
+            ram_start              : 0                   as *const u8, // Set at run-time in devices::init_devices()
+            ram_len                : 0                               , // Set at run-time in devices::init_devices()
+            phys_page_registry     : 0                   as *const u8, // 
+            phys_page_registry_len : 0                     
         };
 
         match devices::init_devices(jerry_meta_data.kernel_dtb_start) { 
@@ -61,7 +64,21 @@ pub extern "C" fn main() -> ! {
                 jerry_meta_data.ram_len = ram_len;
             },
             Err(_e) => {
-                panic!("devices::init_devices errored!") 
+                panic!("devices::init_devices errored!")
+            }
+        }
+
+        let static_kernel_mem_end: *const u8 = jerry_meta_data.kernel_text_end;
+        match memory::init_memory(
+            static_kernel_mem_end, 
+            jerry_meta_data.ram_start, 
+            jerry_meta_data.ram_len
+        ) {
+            Ok(_) => {
+                
+            },
+            Err(_e) => {
+                panic!("memory::init_memory errored!")
             }
         }
     }

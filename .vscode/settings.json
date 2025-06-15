@@ -11,10 +11,12 @@
     "--target",
     "aarch64-unknown-jerryOS-elf.json"
   ],
+  "rust-analyzer.cargo.buildScripts.useRustcWrapper": false,
   "python.analysis.extraPaths": [
       "/opt/homebrew/Cellar/llvm/19.1.7/libexec/python3.13/site-packages"
   ],
   "files.associations": {
-    "libfdt.h": "c"
+    "libfdt.h": "c",
+    "ppm.h": "c"
   }
 }
