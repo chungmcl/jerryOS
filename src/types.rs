@@ -1,19 +1,25 @@
 use core::{ptr, arch};
 use arch::asm;
 
+// 2^(14) -> 16KB
+pub const PAGE_GRANULARITY: usize = 14;
+pub const PAGE_LEN: usize = 1 << PAGE_GRANULARITY;
+
 pub struct JerryMetaData {
-    pub kernel_dtb_start    : *const u8,
-    pub kernel_dtb_end      : *const u8,
-    pub kernel_init_sp      : *const u8,
-    pub kernel_bin_start    : *const u8,
-    pub kernel_rodata_start : *const u8,
-    pub kernel_rodata_end   : *const u8,
-    pub kernel_text_start   : *const u8,
-    pub kernel_text_end     : *const u8,
-    pub kernel_bss_start    : *const u8,
-    pub kernel_bss_end      : *const u8,
-    pub ram_start           : *const u8,
-    pub ram_len             : u64
+    pub kernel_dtb_start       : *const u8,
+    pub kernel_dtb_end         : *const u8,
+    pub kernel_init_sp         : *const u8,
+    pub kernel_bss_start       : *const u8,
+    pub kernel_bss_end         : *const u8,
+    pub kernel_bin_start       : *const u8,
+    pub kernel_rodata_start    : *const u8,
+    pub kernel_rodata_end      : *const u8,
+    pub kernel_text_start      : *const u8,
+    pub kernel_text_end        : *const u8,
+    pub ram_start              : *const u8,
+    pub ram_len                : u64,
+    pub phys_page_registry     : *const u8, 
+    pub phys_page_registry_len : u64
 }
 
 #[inline(always)]
@@ -42,6 +48,22 @@ pub fn write64(reg: &mut u64, val: u64) {
     unsafe {
         ptr::write_volatile(reg as *mut u64, val);
     }
+}
+
+#[inline(always)]
+pub fn n_bits(n: u64) -> u64 {
+    return (1u64 << (n + 1)) - 1;
+}
+
+#[inline(always)]
+pub fn get_bits(from: u64, msb: u64, lsb: u64) -> u64 {
+    return (from >> lsb) & n_bits(msb - lsb);
+}
+
+#[inline(always)]
+pub fn set_bits(to: &mut u64, from: u64, msb: u64, lsb: u64) {
+    let mask: u64 = n_bits(msb - lsb) << lsb;
+    *to = (*to & !mask) | ((from & n_bits(msb - lsb)) << lsb);
 }
 
 // Synchronization Barrier Type

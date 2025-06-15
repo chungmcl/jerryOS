@@ -1,3 +1,4 @@
+use crate::types::*;
 use modular_bitfield::prelude::*;
 
 /*
@@ -198,4 +199,25 @@ pub struct BlockDescriptorS1 {
     pub res_sw_use_58_56 : B3,  
     pub pbha             : B4,  
     pub ignored_63       : bool,
+}
+
+
+#[inline(always)]
+pub fn pa_to_nlta(pa: *const u8) -> u64 {
+    return (pa as usize >> PAGE_GRANULARITY) as u64;
+}
+
+#[inline(always)]
+pub fn pa_to_oab(pa: *const u8) -> u64 {
+    return (pa as usize >> PAGE_GRANULARITY) as u64;
+}
+
+#[inline(always)]
+pub fn nlta_to_pa(nlta: u64) -> *const u8 {
+    return ((nlta as usize) << PAGE_GRANULARITY) as *const u8;
+}
+
+#[inline(always)]
+pub fn oab_to_pa(oab: u64) -> *const u8 {
+    return ((oab as usize) << PAGE_GRANULARITY) as *const u8;
 }

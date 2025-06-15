@@ -1,0 +1,160 @@
+use crate::memory::*;
+
+static mut PHYS_PAGE_REGISTRY: *mut u8 = ptr::null_mut();
+static mut PHYS_PAGE_REGISTRY_LEN: usize = 0;
+
+pub enum PPMError {
+    PageIdxOutOfRange,
+    PageHasNoReferences,
+    PageHasMaxReferences,
+    InvalidPageIdxRange,
+    ExpectedFreePageHasReferences,
+    NoFreePages
+}
+
+pub fn init_ppm(static_kernel_mem_end: *const u8, ram_start: *const u8, ram_len: u64) -> Result<(), PPMError> {
+    unsafe {
+        // .sub(1) since ..._end points to first byte after last byte of data
+        // +1 because index -> count
+        let static_kernel_mem_pages: usize = pa_to_page_idx(static_kernel_mem_end.sub(1)) + 1;
+        PHYS_PAGE_REGISTRY = page_idx_to_pa_mut(static_kernel_mem_pages);
+        // ram_start for #(physical addresses from 0x0 to start of RAM).
+        PHYS_PAGE_REGISTRY_LEN = (ram_start as usize + ram_len as usize) / PAGE_LEN;
+        ptr::write_bytes(PHYS_PAGE_REGISTRY, 0x00, PHYS_PAGE_REGISTRY_LEN);
+        let phys_page_registry_pages: usize = (PHYS_PAGE_REGISTRY_LEN / PAGE_LEN) + 1;
+        let already_used_pages: usize = static_kernel_mem_pages + phys_page_registry_pages;
+        match increment_ref_count_range(already_used_pages - 1, 0) {
+            Ok(_) => { 
+                return Ok(());
+            },
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    }
+}
+
+pub fn get_free_page() -> Result<*const u8, PPMError> {
+    unsafe {
+        for i in 0..PHYS_PAGE_REGISTRY_LEN {
+            if *PHYS_PAGE_REGISTRY.add(i) == 0 {
+                match increment_ref_count(i) {
+                    Ok(ref_count) => {
+                        if ref_count != 0x01 {
+                            return Err(PPMError::ExpectedFreePageHasReferences);
+                        }
+                    },
+                    Err(e) => {
+                        return Err(e);
+                    }
+                };
+                return Ok(page_idx_to_pa(i));
+            }
+        }
+        return Err(PPMError::NoFreePages);
+    }
+}
+
+pub fn free_page_ref(page_ref: *const u8) -> Result<u8, PPMError> {
+    return decrement_ref_count(pa_to_page_idx(page_ref));
+}
+
+pub fn increment_ref_count(page_idx: usize) -> Result<u8, PPMError> {
+    unsafe {
+        if page_idx >= PHYS_PAGE_REGISTRY_LEN {
+            return Err(PPMError::PageIdxOutOfRange);
+        }
+
+        let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+        let cur_ref_count: u8 = *page_ref_counter;
+        if cur_ref_count >= u8::MAX {
+            return Err(PPMError::PageHasMaxReferences);
+        }
+
+        *page_ref_counter += 1;
+        return Ok(*page_ref_counter);
+    }
+}
+
+pub fn increment_ref_count_range(high_idx: usize, low_idx: usize) -> Result<(), PPMError> {
+    unsafe {
+        if (high_idx <= low_idx) | (high_idx >= PHYS_PAGE_REGISTRY_LEN) {
+            return Err(PPMError::InvalidPageIdxRange);
+        }
+
+        for page_idx in low_idx..=high_idx {
+            let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+            let cur_ref_count: u8 = *page_ref_counter;
+            if cur_ref_count >= u8::MAX {
+                return Err(PPMError::PageHasMaxReferences);
+            }
+        }
+
+        for page_idx in low_idx..=high_idx {
+            let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+            *page_ref_counter += 1;
+        }
+
+        return Ok(());
+    }
+}
+
+pub fn decrement_ref_count(page_idx: usize) -> Result<u8, PPMError> {
+    unsafe {
+        if page_idx >= PHYS_PAGE_REGISTRY_LEN {
+            return Err(PPMError::PageIdxOutOfRange);
+        }
+
+        let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+        let cur_ref_count: u8 = *page_ref_counter;
+        if cur_ref_count <= 0x00 {
+            return Err(PPMError::PageHasNoReferences);
+        }
+
+        *page_ref_counter -= 1;
+        return Ok(*page_ref_counter);
+    }
+}
+
+pub fn decrement_ref_count_range(high_idx: usize, low_idx: usize) -> Result<(), PPMError> {
+    unsafe {
+        if (low_idx <= high_idx) | (high_idx >= PHYS_PAGE_REGISTRY_LEN) {
+            return Err(PPMError::InvalidPageIdxRange);
+        }
+
+        for page_idx in low_idx..=high_idx {
+            let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+            let cur_ref_count: u8 = *page_ref_counter;
+            if cur_ref_count <= 0x00 {
+                return Err(PPMError::PageHasNoReferences);
+            }
+        }
+
+        for page_idx in low_idx..=high_idx {
+            let page_ref_counter: *mut u8 = PHYS_PAGE_REGISTRY.add(page_idx);
+            *page_ref_counter -= 1;
+        }
+
+        return Ok(());
+    }
+}
+
+#[inline(always)]
+pub fn page_idx_to_pa(page_idx: usize) -> *const u8 {
+    return (page_idx * PAGE_LEN) as *const u8;
+}
+
+#[inline(always)]
+pub fn pa_to_page_idx(pa: *const u8) -> usize {
+    return (pa as usize) / PAGE_LEN;
+}
+
+#[inline(always)]
+pub fn page_idx_to_pa_mut(page_idx: usize) -> *mut u8 {
+    return (page_idx * PAGE_LEN) as *mut u8;
+}
+
+#[inline(always)]
+pub fn pa_to_page_idx_mut(pa: *mut u8) -> usize {
+    return (pa as usize) / PAGE_LEN;
+}

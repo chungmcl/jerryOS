@@ -1,20 +1,30 @@
 pub mod ttd;
-pub use core::ffi::{c_void, c_int};
-pub use core::{slice, ptr};
-use ttd::*;
-
-#[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-pub static mut KERNEL_ROOT_TABLE0: [TableDescriptorS1; 8] = [TableDescriptorS1::new(); 8];
-
-#[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-pub static mut KERNEL_ROOT_TABLE1: [TableDescriptorS1; 8] = [TableDescriptorS1::new(); 8];
+pub mod ppm;
+pub mod ptm;
+pub use crate::types::*;
+pub use core::ptr;
+pub use ttd::*;
+use ppm::*;
+use ptm::*;
 
 pub enum MemorySetupError {
-    E
+    PPMInitFailed(PPMError)
 }
  
-pub fn init_memory() -> Result<(), MemorySetupError> {
+pub fn init_memory(
+    static_kernel_mem_end: *const u8, 
+    ram_start: *const u8, 
+    ram_len: u64
+) -> Result<(), MemorySetupError> {
+    match init_ppm(static_kernel_mem_end, ram_start, ram_len) {
+        Ok(_) => { },
+        Err(e) => {
+            return Err(MemorySetupError::PPMInitFailed(e));
+        }
+    }
+    
     let test: TableDescriptorS1 = TableDescriptorS1::new().with_valid_bit(true);
+    
     unsafe {
         KERNEL_ROOT_TABLE0[0] = test;
     }
