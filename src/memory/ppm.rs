@@ -12,7 +12,7 @@ pub enum PPMError {
     NoFreePages
 }
 
-pub fn init_ppm(static_kernel_mem_end: *const u8, ram_start: *const u8, ram_len: u64) -> Result<(), PPMError> {
+pub fn init_ppm(static_kernel_mem_end: *const u8, ram_start: *const u8, ram_len: u64) -> Result<*const u8, PPMError> {
     unsafe {
         // .sub(1) since ..._end points to first byte after last byte of data
         // +1 because index -> count
@@ -25,7 +25,7 @@ pub fn init_ppm(static_kernel_mem_end: *const u8, ram_start: *const u8, ram_len:
         let already_used_pages: usize = static_kernel_mem_pages + phys_page_registry_pages;
         match increment_ref_count_range(already_used_pages - 1, 0) {
             Ok(_) => { 
-                return Ok(());
+                return Ok(page_idx_to_pa(already_used_pages));
             },
             Err(e) => {
                 return Err(e);
@@ -34,7 +34,7 @@ pub fn init_ppm(static_kernel_mem_end: *const u8, ram_start: *const u8, ram_len:
     }
 }
 
-pub fn get_free_page() -> Result<*const u8, PPMError> {
+pub fn get_free_page(zero_out: bool) -> Result<*const u8, PPMError> {
     unsafe {
         for i in 0..PHYS_PAGE_REGISTRY_LEN {
             if *PHYS_PAGE_REGISTRY.add(i) == 0 {
@@ -48,7 +48,9 @@ pub fn get_free_page() -> Result<*const u8, PPMError> {
                         return Err(e);
                     }
                 };
-                return Ok(page_idx_to_pa(i));
+                let page_pa: *mut u8 = page_idx_to_pa_mut(i);
+                if zero_out { ptr::write_bytes(page_pa, 0x00, PAGE_LEN); }
+                return Ok(page_pa);
             }
         }
         return Err(PPMError::NoFreePages);

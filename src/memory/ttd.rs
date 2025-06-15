@@ -1,5 +1,5 @@
 use crate::types::*;
-use modular_bitfield::prelude::*;
+use crate::memory::*;
 
 /*
  * Notes for how to interpret what bits represent in TTEs via the A-Profile Reference:
