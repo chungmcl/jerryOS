@@ -2,6 +2,7 @@
 # command script import "~/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/etc/lldb_lookup.py"
 # command source -s 0 '~/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/etc/lldb_commands'
 command script import ./scripts_lldb/dtb_to_dts.py
+command script import ./scripts_lldb/bit_tools.py
 
 settings set target.exec-search-paths ./target/aarch64-unknown-jerryOS-elf/debug
 target create ./target/aarch64-unknown-jerryOS-elf/debug/jerryOS
