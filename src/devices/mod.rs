@@ -15,7 +15,7 @@ pub enum DeviceSetupError {
     VirtIOSetup(virtio::VirtIOError)
 }
  
-pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8, u64), DeviceSetupError> {
+pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8, usize), DeviceSetupError> {
     if let Err(e) = libfdt_lite_init(kernel_dtb_start) {
         return Err(DeviceSetupError::LibFDTInitFailed(e));
     }
@@ -39,7 +39,7 @@ pub fn init_devices(kernel_dtb_start: *const u8) -> Result<(*const u8, *const u8
 
     // These are set at run-time in ram::load_ram_specs()
     let mut ram_start: *const u8 = ptr::null_mut();
-    let mut ram_len: u64 = 0;
+    let mut ram_len: usize = 0;
 
     let mut fdt = match FDTItr::new() {
         Ok(fdt) => fdt,

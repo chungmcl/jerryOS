@@ -16,7 +16,7 @@ pub enum MemorySetupError {
 pub fn init_memory(
     static_kernel_mem_end: *const u8, 
     ram_start: *const u8, 
-    ram_len: u64
+    ram_len: usize
 ) -> Result<(), MemorySetupError> {
     let kernel_mem_end: *const u8;
     match init_ppm(static_kernel_mem_end, ram_start, ram_len) {
@@ -28,7 +28,7 @@ pub fn init_memory(
         }
     }
 
-    if let Err(e) = bootstrap_kernel_page_tables(kernel_mem_end) {
+    if let Err(e) = bootstrap_kernel_page_tables(ram_start, ram_len, kernel_mem_end) {
         return Err(MemorySetupError::KernelPTBootStrapFailed(e));
     }
 

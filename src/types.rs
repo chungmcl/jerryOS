@@ -17,9 +17,9 @@ pub struct JerryMetaData {
     pub kernel_text_start      : *const u8,
     pub kernel_text_end        : *const u8,
     pub ram_start              : *const u8,
-    pub ram_len                : u64,
+    pub ram_len                : usize,
     pub phys_page_registry     : *const u8, 
-    pub phys_page_registry_len : u64
+    pub phys_page_registry_len : usize
 }
 
 #[inline(always)]

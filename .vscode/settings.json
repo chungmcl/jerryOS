@@ -13,7 +13,7 @@
   ],
   "rust-analyzer.cargo.buildScripts.useRustcWrapper": false,
   "python.analysis.extraPaths": [
-      "/opt/homebrew/Cellar/llvm/19.1.7/libexec/python3.13/site-packages"
+      "/opt/homebrew/Cellar/llvm/20.1.7/libexec/python3.13/site-packages"
   ],
   "files.associations": {
     "libfdt.h": "c",

@@ -13,96 +13,28 @@ pub static mut KERNEL_ROOT_TABLE0: [TableDescriptorS1; 8] = [TableDescriptorS1::
 #[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
 pub static mut KERNEL_ROOT_TABLE1: [TableDescriptorS1; 8] = [TableDescriptorS1::new(); 8];
 
-pub fn bootstrap_kernel_page_tables(kernel_mem_end: *const u8) -> Result<(), PTMError> {
-    /*
-     * Boot👢strap🔫 the kernel VA by identity mapping the initial
-     * kernel page table, i.e. mapping PA == VA. This is necessary because
-     * after we turn the MMU on in enableMMU(), the processor will start
-     * using the MMU to translate all referenced memory addresses via the page tables
-     * pointed to by $TTBR0_EL1 and $TTBR1_EL1. This will also include the addresses
-     * in $PC and $SP, meaning that after enableMMU() finishes and the MMU is on, the
-     * processor will look into the page tables for the translation of ($PC + 4). Therefore,
-     * we need to map the kernel's physical pages to a VA that is equal to its physical page's
-     * PA such that the MMU is able to translate the VA ($PC + 4) to the PA ($PC + 4).
-     * We setup the page kernel page table here to do this identity mapping before we call
-     * enableMMU().
-     * 
-     * Note that the Kernel's addy range should not be in the "high" range of the VA, i.e.
-     * the VA range mapped by $TTBR1_EL1, so we don't do anything to kernelRootTable1.
-    */
-
-    /*
-     * When we calculate pages_to_map, we have to calculate pages_needed_for_page_table
-     * and add it to pages_to_map, since we need the table ITSELF mapped into VA space.
-     * Example of what we eventually want to happen:
-     * # In this example, 0  is the highest allocated l1 table index,
-     * #                  32 is the highest allocated l2 table index,
-     * #                  66 is the highest allocated l3 table index.
-     * | *((uint64_t*)(*((uint64_t*)&KERNEL_ROOT_TABLE0[0]) & ~0x03) + 32) & ~0x03
-     * |  = 0x0000000040108000 # address of highest allocated l3 table
-     * 
-     * | *(((uint64_t*)(*((uint64_t*)((*((uint64_t*)&KERNEL_ROOT_TABLE0[0])) & ~0x03) + 32) & ~0x03)) + 66) & ~0x403
-     * |  = 0x0000000040108000 # address of the highest allocated physical page
-     * # We've converged the VA space described by the page table tree, with the PA space INCLUDING
-     * # the page table tree itself!!!
-     * 
-     * Expanded out:
-     * | *(
-     * |     (uint64_t*)(
-     * |         *(
-     * |             (uint64_t*)&KERNEL_ROOT_TABLE0[0]         // Address of the first element of KERNEL_ROOT_TABLE0
-     * |         )                                             // Get the first element of KERNEL_ROOT_TABLE0
-     * |         & ~(0x03)                                     // Ignore TableDescriptorS1.{valid_bit, descriptor_type}
-     * |     )                                                 // Cast first element of KERNEL_ROOT_TABLE0 to u64 pointer; points to first L2 Table
-     * |     + 32                                              // Address of the 32nd element of the L2 Table (32 is the last used element of the L2 Table)
-     * | )                                                     // Get the 32nd element of the L2 Table
-     * | & ~(0x03)                                             // Ignore TableDescriptorS1.{valid_bit, descriptor_type}
-     * | = 0x0000000040108000                                  // Pointer to last L3 Table
-     * 
-     * | *(
-     * |     (uint64_t*)(
-     * |         *(
-     * |             (uint64_t*)(
-     * |                 *(
-     * |                     (uint64_t*)&KERNEL_ROOT_TABLE0[0] // Address of the first element of KERNEL_ROOT_TABLE0
-     * |                 )                                     // Get the first element of KERNEL_ROOT_TABLE0
-     * |                 & ~(0x03)                             // Ignore TableDescriptorS1.{valid_bit, descriptor_type}
-     * |             )                                         // Cast first element of KERNEL_ROOT_TABLE0 to u64 pointer; points to first L2 Table
-     * |             + 32                                      // Address of the 32nd element of the L2 Table (32 is the last used element of the L2 Table)
-     * |         )                                             // Get the 32nd element of the L2 Table
-     * |         & ~(0x03)                                     // Ignore TableDescriptorS1.{valid_bit, descriptor_type}                       
-     * |     )                                                 // Cast 32nd element of L2 Table to u64 pointer; points to first L3 Table below 32nd L2 Table              
-     * |     + 66                                              // Address of the 66th element of the L3 Table (66 is the last used element of the L3 Table)                  
-     * | )                                                     // Get the 66th element of the L3 Table                
-     * | & ~(0x403)                                            // Ignore PageDescriptorS1.{valid_bit, descriptor_type, af}                        
-     * | = 0x0000000040108000                                  // Pointer to last physical page that's been used
-     * 
-     * So in other words, the last L3 Table in the page table tree is also the last physical page that's been used!
-     * Therefore, if we setup the page table such that the above is true, we'll have mapped all memory that's been 
-     * used by the kernel thus far (including the page table tree itself) into the page table tree. We would then be
-     * finally Boot👢strap🔫ped and ready to enable the MMU.                                    
-    */
-
+pub fn bootstrap_kernel_page_tables(ram_start: *const u8, ram_len: usize, kernel_mem_end: *const u8) -> Result<(), PTMError> {
     unsafe {
-        let kernel_mem_pages: u64 = ((kernel_mem_end as u64 - 1) / PAGE_LEN as u64) + 1;
-
-        let kernel_mem_end_l1_idx: u64 = get_bits(kernel_mem_end as u64, 46, 36);
-        let kernel_mem_end_l2_idx: u64 = get_bits(kernel_mem_end as u64, 35, 25);
-        let kernel_mem_end_l3_idx: u64 = get_bits(kernel_mem_end as u64, 24, 14);
-        if (kernel_mem_end_l1_idx >= 7)    || // TODO(chungmcl): verify/implement fix for this edge case:
-           (kernel_mem_end_l2_idx >= 2047) || // I think technically if l2_idx or l3_idx is >= 2047
-           (kernel_mem_end_l3_idx >= 2047) {  // I can just += 1 to pages_needed_for_page_table...?
-            panic!("");
-        }
-        let pages_needed_for_page_table: u64 =
-            kernel_mem_end_l1_idx + 1 // #(l2 tables allocated via get_page())
-            + 
-            kernel_mem_end_l2_idx + 1 // #(l3 tables allocated via get_page())
-            // l3 tables' entries are pointers to physical pages, so don't include in calculation
-        ;
-
-        let pages_to_map: u64 = kernel_mem_pages + pages_needed_for_page_table;
-        for pa in (0..pages_to_map * PAGE_LEN as u64).step_by(PAGE_LEN) {
+        /*
+         * Boot👢strap🔫 the kernel VA by identity mapping the initial
+         * kernel page table, i.e. mapping PA == VA. This is necessary because
+         * after we turn the MMU on in enableMMU(), the processor will start
+         * using the MMU to translate all referenced memory addresses via the page tables
+         * pointed to by $TTBR0_EL1 and $TTBR1_EL1. This will also include the addresses
+         * in $PC and $SP, meaning that after enableMMU() finishes and the MMU is on, the
+         * processor will look into the page tables for the translation of ($PC + 4). Therefore,
+         * we need to map the kernel's physical pages to a VA that is equal to its physical page's
+         * PA such that the MMU is able to translate the VA ($PC + 4) to the PA ($PC + 4).
+         * We setup the page kernel page table here to do this identity mapping before we call
+         * enableMMU().
+         * 
+         * Notice that calls to map_page_to_va() here cause more physical pages to be allocated
+         * for the pages of the page table ITSELF. We don't map these pages into the $TTBR0_EL1 VA
+         * space, which means if we were to enable the MMU at this point we wouldn't be able to make
+         * any changes to the kernel's VA space. That's definitely an ability we'll need -- we solve this
+         * conundrum in the next step. 
+        */
+        for pa in (ram_start as usize..kernel_mem_end as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
                 &mut *(&raw mut KERNEL_ROOT_TABLE0), 
@@ -120,6 +52,82 @@ pub fn bootstrap_kernel_page_tables(kernel_mem_end: *const u8) -> Result<(), PTM
                 }
             }
         }
+
+        /*
+         * We now map the entirety of RAM PA space into kernel $TTBR1_EL1 VA space.
+         * If we map everything in RAM to SOME VA range for the kernel, it'll always
+         * be able to access all parts of memory, which is something the kernel will 
+         * need as the memory manager for user-level processes, and, as mentioned above, 
+         * something the kernel needs to be able to modify ITS OWN VA space/page table tree.
+         * 
+         * 
+         * Ostensibly, it may seem that it would waste a lot of pages to map the entirety
+         * of RAM into VA space. However, if we do the math, we see that mapping all of RAM
+         * PA space only uses a very small percentage (less than 1%) of available memory to
+         * allocate the physical pages for page table that maps RAM PA space -> VA space:
+         * 
+         * For reference:
+         * KB = 2^(10) == 1,024         bytes
+         * MB = 2^(20) == 1,048,576     bytes
+         * GB = 2^(30) == 1,073,741,824 bytes
+         * 
+         * Jerry uses a 16KB page granularity, which is 2^(14) bytes per page.
+         * Each node* in the page table tree is also itself a 16KB page, and is an array of u64 pointers.
+         *         (*with the exception of the root nodes (aka L1 nodes) in jerry, which is only an array of 8 u64s)
+         * Therefore, a given page table node can hold 2^(14) / 8 == 2^(11) == 2048 u64 pointers, aka entries.
+         * 
+         * Each page table entry (PTE) in an L3 node points to a 16KB physical page.
+         * If one L3 node can map 2048 16KB physical pages, that means an L3 node can map:
+         *   2048 * 16KB == 2^(11) * 2^(14) == 2^(25) bytes == 32MB of memory.
+         * 
+         * Each translation table entry (TTE) in an L2 node points to a 16KB L3 node.
+         * If one L2 node can map 2048 16KB L3 nodes, and each L3 node maps 32MB == 2^(25) bytes of memory,
+         * that means an L2 node can map:
+         *   2048 * (2^25) == 2^(11) * 2^(25) == 2^(36) bytes == 64GB of memory.
+         * 
+         * Each translation table entry (TTE) in an L1 node points to a 16KB L2 node.
+         * If one L1 node can map 8 16KB L2 nodes, and each L2 node maps 64GB == 2^(36) bytes of memory, 
+         * that means an L1 node can map:
+         *   8 * (2^36) == 2^(3) * 2^(36) = 2^(39) bytes == 512GB of memory.
+         *  
+         * We can observe that if we had for instance, 64GB of RAM we 
+         * wanted to map, it would only take 
+         *   1 L1 node, 1 L2 node, and 2048 L3 nodes, totalling for 64B + 16KB + 2048*16KB = 0.03125GB of pages table node pages.
+         * As a percentage of 64GB, that's approximately only 0.05% of RAM!
+         * 
+         * Using our calculations above, we can generalize a formula of #(page table pages to map m bytes of memory), assuming:
+         * • 64B L1 Node
+         * • 16KB L2 & L3 Node
+         * • u64/8-byte node entries
+         * • 16KB physical pages
+         * 
+         * pagesToMap(m: bytes) := ceil(m / 2^(39)) + ceil(m / 2^(36)) + ceil(m / 2^(25))
+         * 
+         * We can see that #(page table pages to map m bytes of memory) grows linearly (almost, because of the ceil) as m changes,
+         * which means we should always have approximately the same proportion of page table pages used to map m amount of RAM.
+         * That proportion is approximately only 0.05% of total RAM PA space!!!
+         * 
+         * Therefore, there is no practical concern about mapping all of RAM PA space into the kernel's VA space via page tables.
+        */
+        for pa in (ram_start as usize..(ram_start.add(ram_len)) as usize).step_by(PAGE_LEN) {
+            let cur_page: *const u8 = pa as *const u8;
+            match map_page_to_va(
+                &mut *(&raw mut KERNEL_ROOT_TABLE1), 
+                cur_page,
+                cur_page.sub(ram_start as usize), // offset RAM VA to start at 0x00
+                false
+            ) {
+                Ok(mapped_pa) => {
+                    if mapped_pa != cur_page {
+                        return Err(PTMError::VAAlreadyMapped);
+                    }
+                },
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+
         return Ok(());
     }
 }
