@@ -1,4 +1,3 @@
-use crate::types::*;
 use crate::memory::*;
 
 /*
@@ -128,77 +127,77 @@ use crate::memory::*;
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct TableDescriptorS1 {
-    pub valid_bit        : bool,       
-    pub table_descriptor : bool,
-    pub ignored_7_2      : B6,       
-    pub ignored_9_8      : B2,       
-    pub ignored_10       : bool,      
-    pub ignored_11       : bool,      
-    pub res0_13_12       : B2,        
-    pub nlta             : B34,             
-    pub res0_49_48       : B2,        
-    pub res0_50          : bool,         
-    pub ignored_51       : bool,      
-    pub ignored_52       : bool,      
-    pub ignored_58_53    : B6,     
-    pub pxn_table        : bool,       
-    pub uxn_table        : bool,       
-    pub ap_table         : B2,          
-    pub res0_63          : bool,         
+    pub valid_bit        : bool, // [0]
+    pub table_descriptor : bool, // [1]
+    pub ignored_7_2      : B6,   // [7:2]    
+    pub ignored_9_8      : B2,   // [9:8]    
+    pub ignored_10       : bool, // [10]   
+    pub ignored_11       : bool, // [11]    
+    pub res0_13_12       : B2,   // [13:12]     
+    pub nlta             : B34,  // [47:14]           
+    pub res0_49_48       : B2,   // [49:48]     
+    pub res0_50          : bool, // [50]        
+    pub ignored_51       : bool, // [51]     
+    pub ignored_52       : bool, // [52]     
+    pub ignored_58_53    : B6,   // [58:53]  
+    pub pxn_table        : bool, // [59]      
+    pub uxn_table        : bool, // [60]      
+    pub ap_table         : B2,   // [62:61]       
+    pub res0_63          : bool, // [63]        
 }
 
 #[bitfield(bits = 64)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct PageDescriptorS1 {
-    pub valid_bit        : bool,
-    pub descriptor_type  : bool,
-    pub attr_indx        : B3,  
-    pub res0_5           : bool,
-    pub ap               : B2,  
-    pub shareability     : B2,  
-    pub af               : bool,
-    pub ng               : bool,
-    pub res0_13_12       : B2,  
-    pub oab              : B34, 
-    pub res0_49_48       : B2,  
-    pub gp               : bool,
-    pub dbm              : bool,
-    pub contiguous       : bool,
-    pub pxn              : bool,
-    pub uxn              : bool,
-    pub ignored_55       : bool,
-    pub res_sw_use_58_56 : B3,  
-    pub pbha             : B4,  
-    pub ignored_63       : bool,
+    pub valid_bit        : bool, // [0]
+    pub descriptor_type  : bool, // [1]
+    pub attr_indx        : B3,   // [4:2]
+    pub res0_5           : bool, // [5]
+    pub ap               : B2,   // [7:6]
+    pub shareability     : B2,   // [9:8]
+    pub af               : bool, // [10]
+    pub ng               : bool, // [11]
+    pub res0_13_12       : B2,   // [13:12]
+    pub oab              : B34,  // [47:14]
+    pub res0_49_48       : B2,   // [49:48]
+    pub gp               : bool, // [50]
+    pub dbm              : bool, // [51]
+    pub contiguous       : bool, // [52]
+    pub pxn              : bool, // [53]
+    pub uxn              : bool, // [54]
+    pub ignored_55       : bool, // [55]
+    pub res_sw_use_58_56 : B3,   // [58:56]
+    pub pbha             : B4,   // [62:59]
+    pub ignored_63       : bool, // [63]
 }
 
 #[bitfield(bits = 64)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct BlockDescriptorS1 {
-    pub valid_bit        : bool,
-    pub descriptor_type  : bool,
-    pub attr_indx        : B3,  
-    pub res0_5           : bool,
-    pub ap               : B2,  
-    pub shareability     : B2,  
-    pub af               : bool,
-    pub ng               : bool,
-    pub res0_15_12       : B4,  
-    pub nt               : bool,
-    pub res0_24_17       : B8,  
-    pub oab              : B23, 
-    pub res0_49_48       : B2,  
-    pub gp               : bool,
-    pub dbm              : bool,
-    pub contiguous       : bool,
-    pub pxn              : bool,
-    pub uxn              : bool,
-    pub ignored_55       : bool,
-    pub res_sw_use_58_56 : B3,  
-    pub pbha             : B4,  
-    pub ignored_63       : bool,
+    pub valid_bit        : bool, // [0]
+    pub descriptor_type  : bool, // [1]
+    pub attr_indx        : B3,   // [4:2]
+    pub res0_5           : bool, // [5]
+    pub ap               : B2,   // [7:6]
+    pub shareability     : B2,   // [9:8]
+    pub af               : bool, // [10]
+    pub ng               : bool, // [11]
+    pub res0_15_12       : B4,   // [15:12]
+    pub nt               : bool, // [16]
+    pub res0_24_17       : B8,   // [24:17]
+    pub oab              : B23,  // [47:25]
+    pub res0_49_48       : B2,   // [49:48]
+    pub gp               : bool, // [50]
+    pub dbm              : bool, // [51]
+    pub contiguous       : bool, // [52]
+    pub pxn              : bool, // [53]
+    pub uxn              : bool, // [54]
+    pub ignored_55       : bool, // [55]
+    pub res_sw_use_58_56 : B3,   // [58:56]
+    pub pbha             : B4,   // [62:59]
+    pub ignored_63       : bool, // [63]
 }
 
 

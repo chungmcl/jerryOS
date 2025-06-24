@@ -8,15 +8,17 @@ fi
 BUILD_DIR="target/aarch64-unknown-jerryOS-elf"
 echo "---------------------------------------"
 
-MEMORY_GB=4
-DISK_GB=2
+MEMORY_N=512
+MEMORY_UNIT=M
+DISK_N=1
+DISK_UNIT=G
 DISK_DIR=.disks
-DISK_PATH=${DISK_DIR}/disk_${DISK_GB}G.img
+DISK_PATH=${DISK_DIR}/disk_${DISK_N}${DISK_UNIT}.img
 mkdir -p ${DISK_DIR}
 if [ ! -f "${DISK_PATH}" ]; then 
   echo ""
-  echo "disk_${DISK_GB}.img not already present. Creating with qemu-img create:"
-  qemu-img create -f raw "${DISK_PATH}" "${DISK_GB}G"
+  echo "disk_${DISK_N}${DISK_UNIT}.img not already present. Creating with qemu-img create:"
+  qemu-img create -f raw "${DISK_PATH}" "${DISK_GB}${DISK_UNIT}"
   echo ""
 fi
 
@@ -28,12 +30,12 @@ fi
 
 # Note: use "-machine virt,virtualization=on" to enable EL2
 # https://qemu-project.gitlab.io/qemu/system/arm/virt.html
-echo "Starting QEMU on localhost:$LLDB_PORT with $MEMORY_GB GB of RAM & a $DISK_GB GB disk." \
+echo "Starting QEMU on localhost:${LLDB_PORT} with ${MEMORY_N} ${MEMORY_UNIT}B of RAM & a ${DISK_N} ${DISK_UNIT}B disk." \
 && \
 qemu-system-aarch64 \
   -machine virt \
   -cpu cortex-a710 \
-  -m ${MEMORY_GB}G \
+  -m ${MEMORY_N}${MEMORY_UNIT} \
   -drive file="${DISK_PATH}",if=none,format=raw,id=vd -device virtio-blk-device,drive=vd -global virtio-mmio.force-legacy=false \
   -kernel ${BUILD_DIR}/debug/jerryOS -S \
   -gdb tcp::${LLDB_PORT} \
