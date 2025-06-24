@@ -66,11 +66,13 @@ fn enable_mmu(ttbr0_el1: *const TableDescriptorS1, ttbr1_el1: *const TableDescri
             tcr = in(reg) u64::from_le_bytes(tcr_el1.into_bytes()),
             options(nostack, preserves_flags),
         );
+        MMU_ENABLED = true;
     }
 }
 
 pub static mut RAM_START: *const u8 = ptr::null();
 pub static mut RAM_LEN: usize = 0;
+pub static mut MMU_ENABLED: bool = false;
 
 // 2¹⁴ -> 16KB
 pub const PAGE_GRANULARITY: usize = 14;
@@ -81,8 +83,8 @@ pub const PAGE_LEN: usize = 1 << PAGE_GRANULARITY;
 // This also means to access TTBR1's VA space, one must set the top T0_T1_SZ bits to 0b1.
 pub const T0_T1_SZ: usize = 25;
 pub const TTBR1_MASK: usize = n_bits(T0_T1_SZ) << (usize::BITS as usize - T0_T1_SZ);
-#[inline(always)] pub fn ram_va_to_pa(va: usize) -> usize { !TTBR1_MASK & va }
-#[inline(always)] pub fn pa_to_ram_va(pa: usize) -> usize {  TTBR1_MASK | pa }
+#[inline(always)] pub fn ram_va_to_pa(va: usize) -> usize { unsafe { (!TTBR1_MASK &  va) + RAM_START as usize  } }
+#[inline(always)] pub fn pa_to_ram_va(pa: usize) -> usize { unsafe {   TTBR1_MASK | (pa  - RAM_START as usize) } }
 
 pub const TABLE_ENTRY_LEN:  usize = 1 <<  3;
 pub const L1_TABLE_ENTRIES: usize = 1 <<  3;
