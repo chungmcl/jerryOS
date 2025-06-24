@@ -8,8 +8,8 @@ fi
 BUILD_DIR="target/aarch64-unknown-jerryOS-elf"
 echo "---------------------------------------"
 
-MEMORY_GB=4
-DISK_GB=2
+MEMORY_GB=1
+DISK_GB=1
 DISK_DIR=.disks
 DISK_PATH=${DISK_DIR}/disk_${DISK_GB}G.img
 mkdir -p ${DISK_DIR}
