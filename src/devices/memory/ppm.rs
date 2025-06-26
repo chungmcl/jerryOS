@@ -1,4 +1,4 @@
-use crate::memory::*;
+use super::*;
 
 static mut PHYS_PAGE_REGISTRY: *mut u8 = ptr::null_mut();
 static mut PHYS_PAGE_REGISTRY_LEN: usize = 0;
@@ -54,10 +54,18 @@ pub fn get_free_page(zero_out: bool) -> Result<*const u8, PPMError> {
                         return Err(e);
                     }
                 };
-                // TODO(chungmcl): After the MMU is enabled, must map and/or get
-                // the kernel VA of the PA.
-                let page_pa: *mut u8 = page_idx_to_pa_mut(i);
-                if zero_out { ptr::write_bytes(page_pa, 0x00, PAGE_LEN); }
+                let page_pa: *const u8 = page_idx_to_pa_mut(i);
+                if zero_out {
+                    let page_writable_addy: *mut u8 = 
+                        if MMU_ENABLED { pa_to_ram_va(page_pa as usize) as *mut u8 }
+                        else           {              page_pa           as *mut u8 }
+                    ;
+                    ptr::write_bytes(
+                        page_writable_addy, 
+                        0x00, 
+                        PAGE_LEN
+                    );
+                }
                 return Ok(page_pa);
             }
         }

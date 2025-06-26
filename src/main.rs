@@ -6,9 +6,9 @@ use core::panic::PanicInfo;
 pub use core::arch::asm;
 pub use core::ptr::*;
 pub use crate::types::*;
+pub use crate::devices::pl011_uart::PL011Writer;
 mod types;
 mod devices;
-mod memory;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {
@@ -40,9 +40,8 @@ pub extern "C" fn main() -> ! {
             options(nostack, readonly)
         );
 
-        let mut jerry_meta_data: JerryMetaData = JerryMetaData {
+        let jerry_meta_data: JerryMetaData = JerryMetaData {
             kernel_dtb_start       : kernel_dtb          as *const u8,
-            kernel_dtb_end         : 0                   as *const u8, // Set at run-time in devices::init_devices()
             kernel_init_sp         : kernel_init_sp      as *const u8,
             kernel_bss_start       : kernel_bss_start    as *const u8,
             kernel_bss_end         : kernel_bss_end      as *const u8,
@@ -50,52 +49,30 @@ pub extern "C" fn main() -> ! {
             kernel_rodata_start    : kernel_rodata_start as *const u8,
             kernel_rodata_end      : kernel_rodata_end   as *const u8,
             kernel_text_start      : kernel_text_start   as *const u8,
-            kernel_text_end        : kernel_text_end     as *const u8,
-            ram_start              : 0                   as *const u8, // Set at run-time in devices::init_devices()
-            ram_len                : 0                               , // Set at run-time in devices::init_devices()
-            phys_page_registry     : 0                   as *const u8, // 
-            phys_page_registry_len : 0                     
+            kernel_text_end        : kernel_text_end     as *const u8
         };
 
-        match devices::init_devices(jerry_meta_data.kernel_dtb_start) { 
-            Ok((kernel_dtb_end, ram_start, ram_len)) => {
-                jerry_meta_data.kernel_dtb_end = kernel_dtb_end;
-                jerry_meta_data.ram_start = ram_start;
-                jerry_meta_data.ram_len = ram_len;
-            },
+        match devices::init_devices(jerry_meta_data) { 
+            Ok(_) => {},
             Err(_e) => {
                 panic!("devices::init_devices errored!")
             }
         }
-
-        let static_kernel_mem_end: *const u8 = jerry_meta_data.kernel_text_end;
-        match memory::init_memory(
-            static_kernel_mem_end, 
-            jerry_meta_data.ram_start, 
-            jerry_meta_data.ram_len
-        ) {
-            Ok(_) => {
-                
-            },
-            Err(_e) => {
-                panic!("memory::init_memory errored!")
-            }
-        }
     }
 
+    println!("sup bro i'm jerry, just finished booting. whatchu up to");
+    
     loop {}
 }
 
 #[panic_handler]
 fn jerry_panic(info: &PanicInfo) -> ! {
-    let _msg: &str = info
+    let msg: &str = info
         .message()
         .as_str()
         .expect("Unknown panic!")
     ;
-    /*
-        p/s _msg.data_ptr
-    */
-
+    /* p/s msg.data_ptr */
+    println!("{}", msg);
     loop {}
 }

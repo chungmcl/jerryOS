@@ -1,9 +1,23 @@
-use crate::{devices::*, read32, write32, read64, dsb, SBType};
+// use crate::{devices::*, read32, write32, read64, dsb, SBType};
+use super::*;
 
-pub fn setup_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOError> { 
+pub enum VirtIOError {
+    MapMMIORangeFailed(PTMError),
+    WrongMagicValue,
+    UnsupportedVersion,
+    UnsupportedDeviceType,
+    GetRegsFailed(FDTError),
+    GetInterruptIDFailed(FDTError)
+}
+
+pub fn init_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOError> { 
     let virtio_regs: &'static mut VirtIORegs = match virtio_node.get_reg() {   
-        Ok((virtio_regs_ptr, _virtio_regs_ptr_len)) => {
+        Ok((virtio_regs_ptr, virtio_mmio_len)) => {
             unsafe {
+                if let Err(e) = map_mmio_range(
+                    virtio_regs_ptr as *const u8, 
+                    virtio_mmio_len as usize
+                ) { return Err(VirtIOError::MapMMIORangeFailed(e)); }
                 &mut *(virtio_regs_ptr as *mut VirtIORegs)
             }
         }, 
@@ -170,14 +184,6 @@ pub struct VirtIOBlkConfig {
     pub min_io_size: u16,
     pub opt_io_size: u32,
 } 
-
-pub enum VirtIOError {
-    WrongMagicValue,
-    UnsupportedVersion,
-    UnsupportedDeviceType,
-    GetRegsFailed(FDTError),
-    GetInterruptIDFailed(FDTError)
-}
 
 const VIRTIO_MAGIC:                     u32 = 0x7472_6976;
 const VIRTIO_VERSION:                   u32 = 0x2;
