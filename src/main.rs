@@ -61,20 +61,18 @@ pub extern "C" fn main() -> ! {
     }
 
     println!("sup bro i'm jerry, just finished booting. whatchu up to");
-
+    
     loop {}
 }
 
 #[panic_handler]
 fn jerry_panic(info: &PanicInfo) -> ! {
-    let _msg: &str = info
+    let msg: &str = info
         .message()
         .as_str()
         .expect("Unknown panic!")
     ;
-    /*
-        p/s _msg.data_ptr
-    */
-
+    /* p/s msg.data_ptr */
+    println!("{}", msg);
     loop {}
 }
