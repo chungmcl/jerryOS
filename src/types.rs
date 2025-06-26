@@ -3,7 +3,6 @@ use arch::asm;
 
 pub struct JerryMetaData {
     pub kernel_dtb_start       : *const u8,
-    pub kernel_dtb_end         : *const u8,
     pub kernel_init_sp         : *const u8,
     pub kernel_bss_start       : *const u8,
     pub kernel_bss_end         : *const u8,
@@ -12,10 +11,20 @@ pub struct JerryMetaData {
     pub kernel_rodata_end      : *const u8,
     pub kernel_text_start      : *const u8,
     pub kernel_text_end        : *const u8,
-    pub ram_start              : *const u8,
-    pub ram_len                : usize,
-    pub phys_page_registry     : *const u8, 
-    pub phys_page_registry_len : usize
+}
+
+#[inline(always)]
+pub unsafe fn read32_ptr(reg: *const u32) -> u32 {
+    unsafe { 
+        return ptr::read_volatile(reg as *const u32);
+    }
+}
+
+#[inline(always)]
+pub fn write32_ptr(reg: *mut u32, val: u32) {
+    unsafe {
+        ptr::write_volatile(reg, val);
+    }
 }
 
 #[inline(always)]
@@ -91,6 +100,3 @@ pub unsafe fn isb(barrier_type: SBType) {
         }
     }
 }
-
-#[macro_export]
-macro_rules! break_dummy {() => { { let _: u32 = 2 + 2; } }; }

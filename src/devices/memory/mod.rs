@@ -1,24 +1,38 @@
+use crate::devices::FDTError;
+pub use crate::types::*;
 pub mod ttd;
 pub mod ppm;
 pub mod ptm;
-pub use crate::types::*;
 pub use core::{ptr, arch::asm};
 pub use modular_bitfield::{*, specifiers::*};
+use super::*;
 pub use ttd::*;
 use ppm::*;
 use ptm::*;
 
-pub enum MemorySetupError {
+pub enum MemoryError {
+    RAMFDTNodeGetRegFailed(FDTError),
     PPMInitFailed(PPMError),
     KernelPTBootStrapFailed(PTMError)
 }
  
 pub fn init_memory(
-    static_kernel_mem_end: *const u8, 
-    ram_start: *const u8, 
-    ram_len: usize
-) -> Result<(), MemorySetupError> {
-    unsafe { RAM_START = ram_start; RAM_LEN = ram_len; }
+    dram_node: FDTNode,
+    static_kernel_mem_end: *const u8,
+    dtb_start: *const u8,
+    dtb_end: *const u8
+) -> Result<(), MemoryError> {
+    let ram_start: *const u8;
+    let ram_len: usize;
+
+    match dram_node.get_reg() {
+        Ok((specified_ram_start, specified_ram_len)) => {
+            ram_start = specified_ram_start as *const u8;
+            ram_len = specified_ram_len as usize;
+            unsafe { RAM_START = ram_start; RAM_LEN = ram_len; }
+        },
+        Err(e) => { return Err(MemoryError::RAMFDTNodeGetRegFailed(e)); }
+    }
 
     let kernel_mem_end: *const u8;
     match init_ppm(static_kernel_mem_end, ram_start, ram_len) {
@@ -26,17 +40,23 @@ pub fn init_memory(
             kernel_mem_end = static_kernel_mem_plus_phys_page_registry;
         },
         Err(e) => {
-            return Err(MemorySetupError::PPMInitFailed(e));
+            return Err(MemoryError::PPMInitFailed(e));
         }
     }
 
-    if let Err(e) = bootstrap_kernel_page_tables(ram_start, ram_len, kernel_mem_end) {
-        return Err(MemorySetupError::KernelPTBootStrapFailed(e));
+    if let Err(e) = bootstrap_kernel_page_tables(
+        dtb_start,
+        dtb_end,
+        ram_start, 
+        ram_len, 
+        kernel_mem_end
+    ) {
+        return Err(MemoryError::KernelPTBootStrapFailed(e));
     }
 
     enable_mmu(
-        (&raw const KERNEL_ROOT_TABLE0) as *const TableDescriptorS1, 
-        (&raw const KERNEL_ROOT_TABLE1) as *const TableDescriptorS1, 
+        get_kernel_root_table_0() as *const TableDescriptorS1, 
+        get_kernel_root_table_1() as *const TableDescriptorS1, 
         TcrEl1::new()
             .with_tg0(0b10)
             .with_tg1(0b01)
@@ -70,31 +90,32 @@ fn enable_mmu(ttbr0_el1: *const TableDescriptorS1, ttbr1_el1: *const TableDescri
     }
 }
 
-pub static mut RAM_START: *const u8 = ptr::null();
-pub static mut RAM_LEN: usize = 0;
-pub static mut MMU_ENABLED: bool = false;
+static mut RAM_START: *const u8 = ptr::null();
+static mut RAM_LEN: usize = 0;
+static mut MMU_ENABLED: bool = false;
+#[inline(always)] pub fn mmu_is_enabled() -> bool { unsafe { MMU_ENABLED } }
 
 // 2¹⁴ -> 16KB
-pub const PAGE_GRANULARITY: usize = 14;
-pub const PAGE_LEN: usize = 1 << PAGE_GRANULARITY;
+const PAGE_GRANULARITY: usize = 14;
+const PAGE_LEN: usize = 1 << PAGE_GRANULARITY;
 
 // The size offset of the memory region addressed by $TTBR0_EL1/$TTBR1_EL1. The region size is 2⁽⁶⁴⁻ᵀ⁰-ᵀ¹-ˢz⁾ bytes.
 // i.e. the TTBRs' VA addresses use 64 - T0_T1_SZ = 38 bits. 
 // This also means to access TTBR1's VA space, one must set the top T0_T1_SZ bits to 0b1.
-pub const T0_T1_SZ: usize = 25;
-pub const TTBR1_MASK: usize = n_bits(T0_T1_SZ) << (usize::BITS as usize - T0_T1_SZ);
+const T0_T1_SZ: usize = 25;
+const TTBR1_MASK: usize = n_bits(T0_T1_SZ) << (usize::BITS as usize - T0_T1_SZ);
 #[inline(always)] pub fn ram_va_to_pa(va: usize) -> usize { unsafe { (!TTBR1_MASK &  va) + RAM_START as usize  } }
 #[inline(always)] pub fn pa_to_ram_va(pa: usize) -> usize { unsafe {   TTBR1_MASK | (pa  - RAM_START as usize) } }
 
-pub const TABLE_ENTRY_LEN:  usize = 1 <<  3;
-pub const L1_TABLE_ENTRIES: usize = 1 <<  3;
-pub const L2_TABLE_ENTRIES: usize = 1 << 11;
-pub const L3_TABLE_ENTRIES: usize = 1 << 11;
+const TABLE_ENTRY_LEN:  usize = 1 <<  3;
+const L1_TABLE_ENTRIES: usize = 1 <<  3;
+const L2_TABLE_ENTRIES: usize = 1 << 11;
+const L3_TABLE_ENTRIES: usize = 1 << 11;
 
 // (usize, usize) == [MSB:LSB]
-pub const L1_SELECT_BITS_RANGE: (usize, usize) = (38, 36);
-pub const L2_SELECT_BITS_RANGE: (usize, usize) = (35, 25);
-pub const L3_SELECT_BITS_RANGE: (usize, usize) = (24, 14);
+const L1_SELECT_BITS_RANGE: (usize, usize) = (38, 36);
+const L2_SELECT_BITS_RANGE: (usize, usize) = (35, 25);
+const L3_SELECT_BITS_RANGE: (usize, usize) = (24, 14);
 
 type L1Table = [TableDescriptorS1; L1_TABLE_ENTRIES];
 type L2Table = [TableDescriptorS1; L2_TABLE_ENTRIES];

@@ -6,7 +6,7 @@ if ! ./build.sh; then
   exit 1
 fi
 BUILD_DIR="target/aarch64-unknown-jerryOS-elf"
-echo "---------------------------------------"
+echo "--------------------------------------------------------------------"
 
 MEMORY_N=512
 MEMORY_UNIT=M
@@ -32,11 +32,14 @@ fi
 # https://qemu-project.gitlab.io/qemu/system/arm/virt.html
 echo "Starting QEMU on localhost:${LLDB_PORT} with ${MEMORY_N} ${MEMORY_UNIT}B of RAM & a ${DISK_N} ${DISK_UNIT}B disk." \
 && \
+echo "--------------------------------------------------------------------" \
+&& \
 qemu-system-aarch64 \
   -machine virt \
   -cpu cortex-a710 \
   -m ${MEMORY_N}${MEMORY_UNIT} \
   -drive file="${DISK_PATH}",if=none,format=raw,id=vd -device virtio-blk-device,drive=vd -global virtio-mmio.force-legacy=false \
+  -serial mon:stdio \
   -kernel ${BUILD_DIR}/debug/jerryOS -S \
   -gdb tcp::${LLDB_PORT} \
   -nographic

@@ -1,4 +1,4 @@
-use crate::memory::*;
+use super::*;
 
 static mut PHYS_PAGE_REGISTRY: *mut u8 = ptr::null_mut();
 static mut PHYS_PAGE_REGISTRY_LEN: usize = 0;

@@ -13,7 +13,7 @@ static mut SIZE_CELLS: usize = 0;
 static mut KERNEL_DTB_START: *const u8 = ptr::null_mut();
 static mut INITIALIZED: bool = false;
 
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive, Debug)]
 #[repr(i32)]
 pub enum FDTError {
     #[num_enum(default)] Unknown,

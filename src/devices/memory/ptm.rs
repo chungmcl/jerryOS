@@ -1,5 +1,4 @@
-use crate::memory::*;
-use ttd::*;
+use super::*;
 
 pub enum PTMError {
     GetFreePageFailed(PPMError),
@@ -8,12 +7,20 @@ pub enum PTMError {
 }
 
 #[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-pub static mut KERNEL_ROOT_TABLE0: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+static mut KERNEL_ROOT_TABLE0: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+#[inline(always)] pub fn get_kernel_root_table_0() -> &'static mut L1Table { unsafe { &mut *(&raw mut KERNEL_ROOT_TABLE0) } }
 
 #[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-pub static mut KERNEL_ROOT_TABLE1: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+static mut KERNEL_ROOT_TABLE1: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+#[inline(always)] pub fn get_kernel_root_table_1() -> &'static mut L1Table { unsafe { &mut *(&raw mut KERNEL_ROOT_TABLE1) } }
 
-pub fn bootstrap_kernel_page_tables(ram_start: *const u8, ram_len: usize, kernel_mem_end: *const u8) -> Result<(), PTMError> {
+pub fn bootstrap_kernel_page_tables(
+    dtb_start: *const u8,
+    dtb_end: *const u8,
+    ram_start: *const u8, 
+    ram_len: usize, 
+    kernel_mem_end: *const u8
+) -> Result<(), PTMError> {
     unsafe {
         /*
          * Boot👢strap🔫 the kernel VA by identity mapping the initial
@@ -34,6 +41,24 @@ pub fn bootstrap_kernel_page_tables(ram_start: *const u8, ram_len: usize, kernel
          * any changes to the kernel's VA space. That's definitely an ability we'll need -- we solve this
          * conundrum in the next step. 
         */
+        for pa in (dtb_start as usize..dtb_end as usize).step_by(PAGE_LEN) {
+            let cur_page: *const u8 = pa as *const u8;
+            match map_page_to_va(
+                &mut *(&raw mut KERNEL_ROOT_TABLE0), 
+                cur_page, 
+                cur_page, 
+                false
+            ) {
+                Ok(mapped_pa) => {
+                    if mapped_pa != cur_page {
+                        return Err(PTMError::VAAlreadyMapped);
+                    }
+                },
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
         for pa in (ram_start as usize..kernel_mem_end as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
@@ -135,7 +160,39 @@ pub fn bootstrap_kernel_page_tables(ram_start: *const u8, ram_len: usize, kernel
     }
 }
 
-pub fn map_page_to_va(
+// TODO(chungmcl): This currently just identity maps the MMIO physical addy for simplicity.
+// How do I handle if a VA is already taken? Should a caller be able to specify a VA to map to?
+pub fn map_mmio_range(
+    mmio_address: *const u8,
+    mmio_len: usize
+) -> Result<(), PTMError> {
+    unsafe {
+        let mmio_pg_range_lo: *const u8 = page_idx_to_pa(pa_to_page_idx(mmio_address));
+        let mmio_pg_range_hi: *const u8 = page_idx_to_pa(pa_to_page_idx(mmio_address.add(mmio_len)));
+
+        for pa in (mmio_pg_range_lo as usize..=mmio_pg_range_hi as usize).step_by(PAGE_LEN) {
+            let cur_page: *const u8 = pa as *const u8;
+            match map_page_to_va(
+                &mut *(&raw mut KERNEL_ROOT_TABLE0), 
+                cur_page,
+                cur_page,
+                false
+            ) {
+                Ok(mapped_pa) => {
+                    if mapped_pa != cur_page {
+                        return Err(PTMError::VAAlreadyMapped);
+                    }
+                },
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+        return Ok(());
+    }
+}
+
+fn map_page_to_va(
     root_table: &mut L1Table, 
     page_pa: *const u8, 
     va: *const u8, 
@@ -149,16 +206,20 @@ pub fn map_page_to_va(
     let l3_table: &mut L3Table;
     unsafe {
         if root_table[l1_idx].valid_bit() && root_table[l1_idx].table_descriptor() {
-            l2_table = &mut *(nlta_to_pa(root_table[l1_idx].nlta() as u64) as *mut L2Table);
+            let mut l2_table_addy: *const u8 = nlta_to_pa(root_table[l1_idx].nlta() as u64);
+            if mmu_is_enabled() { l2_table_addy = pa_to_ram_va(l2_table_addy as usize) as *const u8; }
+            l2_table = &mut *(l2_table_addy as *mut L2Table);
         } else {
             match get_free_page(true) {
-                Ok(l2_table_ptr) => {
+                Ok(l2_table_pa) => {
                     root_table[l1_idx] = TableDescriptorS1::new()
                         .with_valid_bit(true)
                         .with_table_descriptor(true)
-                        .with_nlta(pa_to_nlta(l2_table_ptr))
+                        .with_nlta(pa_to_nlta(l2_table_pa))
                     ;
-                    l2_table = &mut *(l2_table_ptr as *mut L2Table);
+                    let mut l3_table_addy: *const u8 = l2_table_pa;
+                    if mmu_is_enabled() { l3_table_addy = pa_to_ram_va(l3_table_addy as usize) as *const u8; }
+                    l2_table = &mut *(l3_table_addy as *mut L2Table);
                 },
                 Err(e) => {
                     return Err(PTMError::GetFreePageFailed(e));
@@ -167,16 +228,20 @@ pub fn map_page_to_va(
         }
 
         if l2_table[l2_idx].valid_bit() && l2_table[l2_idx].table_descriptor() {
-            l3_table = &mut *(nlta_to_pa(l2_table[l2_idx].nlta() as u64) as *mut L3Table);
+            let mut l3_table_addy: *const u8 = nlta_to_pa(l2_table[l2_idx].nlta() as u64);
+            if mmu_is_enabled() { l3_table_addy = pa_to_ram_va(l3_table_addy as usize) as *const u8; }
+            l3_table = &mut *(l3_table_addy as *mut L3Table);
         } else {
             match get_free_page(true) {
-                Ok(l3_table_ptr) => {
+                Ok(l3_table_pa) => {
                     l2_table[l2_idx] = TableDescriptorS1::new()
                         .with_valid_bit(true)
                         .with_table_descriptor(true)
-                        .with_nlta(pa_to_nlta(l3_table_ptr))
+                        .with_nlta(pa_to_nlta(l3_table_pa))
                     ;
-                    l3_table = &mut *(l3_table_ptr as *mut L3Table);
+                    let mut l3_table_addy: *const u8 = l3_table_pa;
+                    if mmu_is_enabled() { l3_table_addy = pa_to_ram_va(l3_table_addy as usize) as *const u8; }
+                    l3_table = &mut *(l3_table_addy as *mut L3Table);
                 },
                 Err(e) => {
                     return Err(PTMError::GetFreePageFailed(e));
