@@ -60,7 +60,7 @@ fn build_c_lib(mut bob_the_builder: Build, lib_name: &str, dep_folder_names: &[&
 
 fn main() {
   println!("cargo:rerun-if-changed=src/entry.S");
-  println!("cargo:rerun-if-changed=path/to/link.lds");
+  println!("cargo:rerun-if-changed=link.lds");
 
   Build::new()
     .file("src/entry.S")

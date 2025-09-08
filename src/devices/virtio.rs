@@ -1,4 +1,3 @@
-// use crate::{devices::*, read32, write32, read64, dsb, SBType};
 use super::*;
 
 pub enum VirtIOError {
@@ -7,7 +6,8 @@ pub enum VirtIOError {
     UnsupportedVersion,
     UnsupportedDeviceType,
     GetRegsFailed(FDTError),
-    GetInterruptIDFailed(FDTError)
+    GetInterruptIDFailed(FDTError),
+    FeaturesNotOk
 }
 
 pub fn init_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOError> { 
@@ -86,21 +86,100 @@ pub fn init_virtio_device(virtio_node: FDTNode) -> Result<VirtIODevice, VirtIOEr
     }
 }
 
-fn setup_block_device(blk_dev_regs: &VirtIORegs, _interrupt_id: u32) -> Result<VirtIOBlk, VirtIOError> {
+fn setup_block_device(blk_dev_regs: &mut VirtIORegs, _interrupt_id: u32) -> Result<VirtIOBlk, VirtIOError> {
     let mut before: u32;
     let mut after: u32;
     let mut capacity: u64;
     let blk_dev_config_ptr: *const VirtIOBlkConfig = blk_dev_regs.get_config::<VirtIOBlk>();
-    return Ok(
-        loop {
-            unsafe {
-                before = read32(&blk_dev_regs.config_generation);
-                capacity = read64(&(*blk_dev_config_ptr).capacity) * read32(&(*blk_dev_config_ptr).blk_size) as u64;
-                after = read32(&blk_dev_regs.config_generation);
-            }
-            if after == before { break VirtIOBlk { size_bytes: capacity } };
+    let blk_dev: VirtIOBlk = loop {
+        unsafe {
+            // See virtio spec section "2.3 Device Configuration Space"
+            // for an explanation of the ConfigGeneration register as used below
+            before = read32(&blk_dev_regs.config_generation);
+            capacity = read64(&(*blk_dev_config_ptr).capacity) * read32(&(*blk_dev_config_ptr).blk_size) as u64;
+            after = read32(&blk_dev_regs.config_generation);
         }
+        if after == before { break VirtIOBlk { size_bytes: capacity } };
+    };
+
+    // jerry is lazy and will support any feature the device does
+    let proposed_driver_features: u64 = 0xFFFFFFFFFFFFFFFF;
+    let matched_features: u64;
+    let _unsupported_driver_features: u64;
+    let _unsupported_device_features: u64;
+
+    // 4. Read device feature bits, and write the subset of feature bits understood by the OS and driver to the
+    // device. During this step the driver MAY read (but MUST NOT write) the device-specific configuration
+    // fields to check that it can support the device before accepting it.
+    (matched_features, _unsupported_driver_features, _unsupported_device_features)
+    = negotiate_features(
+        blk_dev_regs,
+        proposed_driver_features
     );
+    unsafe {
+        dsb(SBType::Sy);
+        write32(&mut blk_dev_regs.driver_features_sel, 0);
+        dsb(SBType::Sy);
+        write32(
+            &mut blk_dev_regs.driver_features, 
+            get_bits(matched_features as usize, 31, 0) as u32
+        );
+        dsb(SBType::Sy);
+        write32(&mut blk_dev_regs.driver_features_sel, 1);
+        dsb(SBType::Sy);
+        write32(
+            &mut blk_dev_regs.driver_features, 
+            get_bits(matched_features as usize, 63, 32) as u32
+        );
+        dsb(SBType::Sy);
+        
+        // 5. Set the FEATURES_OK status bit. The driver MUST NOT accept new feature bits after this step.
+        let status: u32 = read32(&blk_dev_regs.status);
+        dsb(SBType::Sy);
+        write32(
+            &mut blk_dev_regs.status, 
+            status | VIRTIO_STATUS_FEATURES_OK
+        );
+        dsb(SBType::Sy);
+
+        // 6. Re-read device status to ensure the FEATURES_OK bit is still set: otherwise, 
+        // the device does not support our subset of features and the device is unusable.
+        if (read32(&mut blk_dev_regs.status) & VIRTIO_STATUS_FEATURES_OK) == 0 {
+            return Err(VirtIOError::FeaturesNotOk);
+        }
+    }
+
+    // TODO(chungmcl):
+    // 7. Perform device-specific setup, including discovery of virtqueues for the device, optional per-bus setup,
+    // reading and possibly writing the device’s virtio configuration space, and population of virtqueues.
+
+    // 8. Set the DRIVER_OK status bit. At this point the device is "live."
+    unsafe {
+        let status: u32 = read32(&blk_dev_regs.status);
+        dsb(SBType::Sy);
+        write32(
+            &mut blk_dev_regs.status, 
+            status | VIRTIO_STATUS_FEATURES_OK
+        );
+        dsb(SBType::Sy);
+    }
+    
+    return Ok(blk_dev);
+}
+
+fn negotiate_features(dev_regs: &mut VirtIORegs, driver_features: u64) -> (u64, u64, u64) {
+    unsafe {
+        let mut device_features: u64 = read32(&dev_regs.device_features) as u64;
+        dsb(SBType::Sy);
+        write32(&mut dev_regs.device_features_sel, 1);
+        dsb(SBType::Sy);
+        device_features |= (read32(&dev_regs.device_features) as u64) << 32;
+
+        let matched_features: u64 = driver_features & device_features;
+        let unsupported_driver_features: u64 = driver_features & !device_features;
+        let unsupported_device_features: u64 = device_features & !driver_features;
+        return (matched_features, unsupported_driver_features, unsupported_device_features);
+    }
 }
 
 pub trait TrailingConfig {

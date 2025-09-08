@@ -7,12 +7,12 @@ pub enum PTMError {
 }
 
 #[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-static mut KERNEL_ROOT_TABLE0: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
-#[inline(always)] pub fn get_kernel_root_table_0() -> &'static mut L1Table { unsafe { &mut *(&raw mut KERNEL_ROOT_TABLE0) } }
+static mut KERNEL_ROOT_TABLE_0: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+#[inline(always)] pub fn kernel_root_table_0_ptr() -> *const L1Table { &raw const KERNEL_ROOT_TABLE_0 as *const L1Table }
 
 #[unsafe(link_section = ".kernel_root_tables")] #[unsafe(no_mangle)]
-static mut KERNEL_ROOT_TABLE1: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
-#[inline(always)] pub fn get_kernel_root_table_1() -> &'static mut L1Table { unsafe { &mut *(&raw mut KERNEL_ROOT_TABLE1) } }
+static mut KERNEL_ROOT_TABLE_1: L1Table = [TableDescriptorS1::new(); L1_TABLE_ENTRIES];
+#[inline(always)] pub fn kernel_root_table_1_ptr() -> *const L1Table { &raw const KERNEL_ROOT_TABLE_1 as *const L1Table }
 
 pub fn bootstrap_kernel_page_tables(
     dtb_start: *const u8,
@@ -44,7 +44,7 @@ pub fn bootstrap_kernel_page_tables(
         for pa in (dtb_start as usize..dtb_end as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
-                &mut *(&raw mut KERNEL_ROOT_TABLE0), 
+                &raw mut KERNEL_ROOT_TABLE_0, 
                 cur_page, 
                 cur_page, 
                 false
@@ -62,7 +62,7 @@ pub fn bootstrap_kernel_page_tables(
         for pa in (ram_start as usize..kernel_mem_end as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
-                &mut *(&raw mut KERNEL_ROOT_TABLE0), 
+                &raw mut KERNEL_ROOT_TABLE_0, 
                 cur_page, 
                 cur_page, 
                 false
@@ -140,7 +140,7 @@ pub fn bootstrap_kernel_page_tables(
         for pa in (ram_start as usize..(ram_start.add(ram_len)) as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
-                &mut *(&raw mut KERNEL_ROOT_TABLE1), 
+                &raw mut KERNEL_ROOT_TABLE_1, 
                 cur_page,
                 cur_page.sub(ram_start as usize), // offset RAM VA to start at 0x00
                 false
@@ -173,7 +173,7 @@ pub fn map_mmio_range(
         for pa in (mmio_pg_range_lo as usize..=mmio_pg_range_hi as usize).step_by(PAGE_LEN) {
             let cur_page: *const u8 = pa as *const u8;
             match map_page_to_va(
-                &mut *(&raw mut KERNEL_ROOT_TABLE0), 
+                &raw mut KERNEL_ROOT_TABLE_0, 
                 cur_page,
                 cur_page,
                 false
@@ -193,7 +193,7 @@ pub fn map_mmio_range(
 }
 
 fn map_page_to_va(
-    root_table: &mut L1Table, 
+    root_table: *mut L1Table, 
     page_pa: *const u8, 
     va: *const u8, 
     overwrite: bool
@@ -202,17 +202,18 @@ fn map_page_to_va(
     let l2_idx: usize = get_bits(va as usize, L2_SELECT_BITS_RANGE.0, L2_SELECT_BITS_RANGE.1);
     let l3_idx: usize = get_bits(va as usize, L3_SELECT_BITS_RANGE.0, L3_SELECT_BITS_RANGE.1);
 
+    let l1_table: &mut L1Table = unsafe { &mut *root_table };
     let l2_table: &mut L2Table;
     let l3_table: &mut L3Table;
     unsafe {
-        if root_table[l1_idx].valid_bit() && root_table[l1_idx].table_descriptor() {
-            let mut l2_table_addy: *const u8 = nlta_to_pa(root_table[l1_idx].nlta() as u64);
+        if l1_table[l1_idx].valid_bit() && l1_table[l1_idx].table_descriptor() {
+            let mut l2_table_addy: *const u8 = nlta_to_pa(l1_table[l1_idx].nlta() as u64);
             if mmu_is_enabled() { l2_table_addy = pa_to_ram_va(l2_table_addy as usize) as *const u8; }
             l2_table = &mut *(l2_table_addy as *mut L2Table);
         } else {
             match get_free_page(true) {
                 Ok(l2_table_pa) => {
-                    root_table[l1_idx] = TableDescriptorS1::new()
+                    l1_table[l1_idx] = TableDescriptorS1::new()
                         .with_valid_bit(true)
                         .with_table_descriptor(true)
                         .with_nlta(pa_to_nlta(l2_table_pa))

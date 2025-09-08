@@ -55,8 +55,8 @@ pub fn init_memory(
     }
 
     enable_mmu(
-        get_kernel_root_table_0() as *const TableDescriptorS1, 
-        get_kernel_root_table_1() as *const TableDescriptorS1, 
+        kernel_root_table_0_ptr() as *const L1Table, 
+        kernel_root_table_1_ptr() as *const L1Table, 
         TcrEl1::new()
             .with_tg0(0b10)
             .with_tg1(0b01)
@@ -69,7 +69,7 @@ pub fn init_memory(
 }
 
 #[inline(always)]
-fn enable_mmu(ttbr0_el1: *const TableDescriptorS1, ttbr1_el1: *const TableDescriptorS1, tcr_el1: TcrEl1) {
+fn enable_mmu(ttbr0_el1: *const L1Table, ttbr1_el1: *const L1Table, tcr_el1: TcrEl1) {
     unsafe {
         asm!(
             "msr ttbr0_el1, {br0}", // Set TTBR0.
